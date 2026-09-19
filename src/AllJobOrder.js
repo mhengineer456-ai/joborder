@@ -480,17 +480,17 @@ const JobOrders = () => {
   const [fCollar, setFCollar] = useState("");
   const [fBone, setFBone] = useState("");
   const [fFullBaju, setFFullBaju] = useState("");
+  const [fPdfStatus, setFPdfStatus] = useState(""); // "", "not_created", "created"
+  const [showAdvFilters, setShowAdvFilters] = useState(false);
 
   const [generatedLots, setGeneratedLots] = useState(new Set()); // Track which lots have PDFs generated
   const [loadingGeneratedLots, setLoadingGeneratedLots] = useState(false);
 
 
   const [preview, setPreview] = useState({ open: false, src: "", alt: "" });
-  // Update around line 105
+  // Default visible table columns: JobOrderNo, Date, Lot Number, Fabric, Garment Type, Brand, Style (and Actions)
   const VISIBLE_HEADERS = [
-    "Job Order No", "Date", "Party Name", "Fabric", "Shade", "Quantity", "Unit", "Lot Number",
-    "Priority", "Sticker", "Collar", "Bone", "FULL BAJU",
-    "FABRIC_SUPERVISOR", "Order No."  // Add here to show in main table
+    "Job Order No", "Date", "Lot Number", "Fabric", "Garment Type", "Brand", "Style"
   ];
   const DETAIL_HEADERS = HEADERS.filter((h) => !VISIBLE_HEADERS.includes(h));
   const [expanded, setExpanded] = useState(() => new Set());
@@ -806,6 +806,16 @@ const JobOrders = () => {
       const matchesBone = !fBone || (row["Bone"] ?? "") === fBone;          // <-- ADDED
       const matchesFullBaju = !fFullBaju || (row["FULL BAJU"] ?? "") === fFullBaju;  // Changed to "FULL BAJU"
 
+      // PDF status filter check
+      const lotNum = (row["Lot Number"] ?? "").toString().trim();
+      const isPdfGenerated = lotNum ? generatedLots.has(lotNum) : false;
+      let matchesPdfStatus = true;
+      if (fPdfStatus === "not_created") {
+        matchesPdfStatus = !isPdfGenerated;
+      } else if (fPdfStatus === "created") {
+        matchesPdfStatus = isPdfGenerated;
+      }
+
       // NEW: inclusive range filters for JO No and Lot Number
       const matchesJoRange = inRange(row["Job Order No"], joStart, joEnd);
       const matchesLotRange = inRange(row["Lot Number"], lotStart, lotEnd);
@@ -832,17 +842,58 @@ const JobOrders = () => {
         matchesCollar &&      // <-- ADDED
         matchesBone &&
         matchesFullBaju &&      // <-- ADDED
-        matchesPriority
+        matchesPriority &&
+        matchesPdfStatus
       );
     });
   }, [
-    rows, q,
+    rows, q, generatedLots, fPdfStatus,
     fFabric, fBrand, fShade, fParty, fSeason, fSection, fUnit, fDS, fLot,
     fPattern, fSubmittedBy, fPriority,
     fTapeLace, fBottomType, fZip, fSticker,
-    fCollar, fBone,          // <-- ADDED
+    fCollar, fBone, fFullBaju,
     joStart, joEnd, lotStart, lotEnd
   ]);
+
+  /* --------- KPI Metrics & Active Filters Count --------- */
+  const kpiStats = useMemo(() => {
+    let generated = 0;
+    let pending = 0;
+    for (const r of filtered) {
+      const lot = (r["Lot Number"] ?? "").toString().trim();
+      if (lot && generatedLots.has(lot)) {
+        generated++;
+      } else {
+        pending++;
+      }
+    }
+    return { generated, pending };
+  }, [filtered, generatedLots]);
+
+  const activeFilterCount = useMemo(() => {
+    let count = 0;
+    if (fParty) count++;
+    if (fSeason) count++;
+    if (fUnit) count++;
+    if (fTapeLace) count++;
+    if (fBottomType) count++;
+    if (fZip) count++;
+    if (fSticker) count++;
+    if (fCollar) count++;
+    if (fBone) count++;
+    if (fFullBaju) count++;
+    if (fDS) count++;
+    if (fLot) count++;
+    if (fSection) count++;
+    if (fPattern) count++;
+    if (fPriority) count++;
+    if (fSubmittedBy) count++;
+    if (fShade) count++;
+    if (joStart || joEnd) count++;
+    if (lotStart || lotEnd) count++;
+    return count;
+  }, [fParty, fSeason, fUnit, fTapeLace, fBottomType, fZip, fSticker, fCollar, fBone, fFullBaju, fDS, fLot, fSection, fPattern, fPriority, fSubmittedBy, fShade, joStart, joEnd, lotStart, lotEnd]);
+
   /* --------- Sorting --------- */
   const sorted = useMemo(() => {
     const arr = [...filtered];
@@ -904,6 +955,7 @@ const JobOrders = () => {
     setFCollar("");
     setFBone("");
     setFFullBaju("");    // <-- ADDED
+    setFPdfStatus("");
     setQ(""); setPage(1);
     setJoStart(""); setJoEnd("");
     setLotStart(""); setLotEnd("");
@@ -4806,38 +4858,38 @@ const JobOrders = () => {
         }
         @keyframes jox-fade { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
         @keyframes jox-shimmer { 0%{background-position:-468px 0} 100%{background-position:468px 0} }
-        .jox{max-width:2400px;margin:0 auto;padding:0.5rem 1rem;color:var(--jox-text);
+        .jox{max-width:2400px;margin:0 auto;padding:0.4rem 0.75rem;color:var(--jox-text);
              background: radial-gradient(circle at 15% 15%, rgba(219, 234, 254, 0.8) 0%, transparent 40%), radial-gradient(circle at 85% 85%, rgba(224, 242, 254, 0.7) 0%, transparent 45%), #f8fafc;
              min-height:100vh; font-family:'Plus Jakarta Sans',Inter,system-ui,-apple-system,sans-serif;}
-        @media (min-width:768px){.jox{padding:2rem}}
+        @media (min-width:768px){.jox{padding:1rem}}
 
         /* HERO HEADER - ROYAL BLUE GRADIENT */
-        .jox-header{display:grid;gap:1rem;grid-template-columns:1fr;
+        .jox-header{display:grid;gap:0.75rem;grid-template-columns:1fr;
           background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 50%, #2563eb 100%) !important;
           border:1px solid rgba(255, 255, 255, 0.15) !important;
-          border-radius:var(--jox-radius) !important;padding:1.5rem 1.8rem !important;
-          box-shadow:0 20px 25px -5px rgba(37, 99, 235, 0.15) !important;
+          border-radius:14px !important;padding:0.85rem 1.2rem !important;
+          box-shadow:0 15px 20px -5px rgba(37, 99, 235, 0.15) !important;
           animation:jox-fade .25s ease-out; color:#ffffff !important; position:relative; overflow:hidden;}
         @media (min-width:960px){.jox-header{grid-template-columns:1fr auto;align-items:center}}
-        .jox-header__left{display:flex;align-items:center;gap:1.2rem}
-        .jox-header__right{display:flex;align-items:center;gap:.75rem;flex-wrap:wrap}
-        .jox-brand{display:flex;align-items:center;gap:1rem}
-        .jox-brand__logo{width:52px;height:52px;border-radius:14px;display:grid;place-items:center;
+        .jox-header__left{display:flex;align-items:center;gap:1rem}
+        .jox-header__right{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap}
+        .jox-brand{display:flex;align-items:center;gap:.75rem}
+        .jox-brand__logo{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;
           background:rgba(255, 255, 255, 0.15) !important; border:1px solid rgba(255, 255, 255, 0.25) !important;
-          color:#fff;font-size:26px;box-shadow:0 4px 12px rgba(0,0,0,0.1); backdrop-filter:blur(4px);}
-        @media (min-width:768px){.jox-brand__logo{width:58px;height:58px;font-size:30px}}
+          color:#fff;font-size:22px;box-shadow:0 4px 12px rgba(0,0,0,0.1); backdrop-filter:blur(4px);}
+        @media (min-width:768px){.jox-brand__logo{width:48px;height:48px;font-size:24px}}
         .jox-brand__meta{display:grid}
-        .jox-brand__title{display:flex;align-items:center;gap:.6rem;margin:0;font-size:1.5rem;font-weight:800;
+        .jox-brand__title{display:flex;align-items:center;gap:.5rem;margin:0;font-size:1.3rem;font-weight:800;
           background: linear-gradient(135deg, #ffffff 0%, #bfdbfe 100%);
           -webkit-background-clip: text; -webkit-text-fill-color: transparent;}
-        .jox-brand__sub{display:flex;align-items:center;gap:.35rem;color:#bfdbfe;font-size:.92rem;margin-top:.15rem;font-weight:600}
+        .jox-brand__sub{display:flex;align-items:center;gap:.3rem;color:#bfdbfe;font-size:.85rem;margin-top:.1rem;font-weight:600}
         .jox-badge{display:inline-flex;align-items:center;gap:.25rem;background:rgba(255, 255, 255, 0.18) !important;color:#ffffff !important;
-          border:1px solid rgba(255, 255, 255, 0.3) !important; border-radius:999px;padding:.2rem .65rem;font-size:.78rem;font-weight:800}
-        .jox-btn{display:inline-flex;align-items:center;gap:.5rem;background:linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%) !important;
-          color:#fff !important;border:0;border-radius:12px;
-          padding:.75rem 1.2rem;font-weight:700;font-size:.9rem;cursor:pointer;box-shadow:0 4px 14px rgba(37, 99, 235, 0.25);
+          border:1px solid rgba(255, 255, 255, 0.3) !important; border-radius:999px;padding:.15rem .5rem;font-size:.74rem;font-weight:800}
+        .jox-btn{display:inline-flex;align-items:center;gap:.4rem;background:linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%) !important;
+          color:#fff !important;border:0;border-radius:10px;
+          padding:.55rem 0.95rem;font-weight:700;font-size:.84rem;cursor:pointer;box-shadow:0 4px 12px rgba(37, 99, 235, 0.2);
           transition:transform .15s ease,background .15s ease,box-shadow .15s ease}
-        .jox-btn:hover{background:linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%) !important;transform:translateY(-1px);box-shadow:0 6px 18px rgba(37, 99, 235, 0.35);}
+        .jox-btn:hover{background:linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%) !important;transform:translateY(-1px);box-shadow:0 6px 16px rgba(37, 99, 235, 0.3);}
         .jox-btn:active{transform:translateY(0)}
         .jox-btn:disabled{background:#e2e8f0 !important;color:#94a3b8 !important;cursor:not-allowed;transform:none;box-shadow:none !important;}
         .jox-btn--light{background:#ffffff !important;color:#2563eb !important;border:1px solid #cbd5e1 !important;box-shadow:0 1px 3px rgba(0,0,0,0.05)!important;}
@@ -4847,71 +4899,194 @@ const JobOrders = () => {
         .jox-header .jox-btn--ghost{background:rgba(255, 255, 255, 0.15) !important;color:#ffffff !important;border:1px solid rgba(255, 255, 255, 0.25) !important;box-shadow:none !important;}
         .jox-header .jox-btn--ghost:hover{background:rgba(255, 255, 255, 0.3) !important;color:#ffffff !important;}
         .jox-ico{width:1.1em;display:inline-block;text-align:center}
-        .jox-panel{background:#ffffff !important;border:1px solid #cbd5e1 !important;border-radius:18px !important;padding:1.2rem 1.5rem !important;margin-top:1.2rem !important;
-          box-shadow:0 10px 25px -5px rgba(37, 99, 235, 0.08) !important;animation:jox-fade .25s ease-out}
-        .jox-panel__head{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem}
-        .jox-panel__title{margin:0;display:flex;align-items:center;gap:.5rem;font-size:1.15rem;font-weight:800;color:#0f172a}
-        .jox-input,.jox-select{width:100%;padding:.7rem 1rem;border:1px solid #cbd5e1 !important;border-radius:12px !important;background:#fff !important;font-size:.92rem;font-weight:600;color:#0f172a;
+        .jox-panel{background:#ffffff !important;border:1px solid #cbd5e1 !important;border-radius:14px !important;padding:0.75rem 1rem !important;margin-top:0.75rem !important;
+          box-shadow:0 6px 18px -4px rgba(37, 99, 235, 0.06) !important;animation:jox-fade .25s ease-out}
+        .jox-panel__head{display:flex;align-items:center;justify-content:space-between;margin-bottom:0.6rem}
+        .jox-panel__title{margin:0;display:flex;align-items:center;gap:.4rem;font-size:1.05rem;font-weight:800;color:#0f172a}
+        .jox-input,.jox-select{width:100%;padding:.45rem .75rem;border:1px solid #cbd5e1 !important;border-radius:8px !important;background:#fff !important;font-size:.85rem;font-weight:600;color:#0f172a;
           transition:box-shadow .15s ease,border-color .15s ease,background .15s ease}
-        .jox-input:focus,.jox-select:focus{outline:none;border-color:#2563eb !important;box-shadow:0 0 0 4px rgba(37, 99, 235, 0.15) !important}
+        .jox-input:focus,.jox-select:focus{outline:none;border-color:#2563eb !important;box-shadow:0 0 0 3px rgba(37, 99, 235, 0.15) !important}
         .jox-input--search{box-shadow:inset 0 1px 2px rgba(0,0,0,0.04)}
-        .jox-filters{display:grid;gap:1rem;grid-template-columns:1fr}
+        .jox-filters{display:grid;gap:0.6rem;grid-template-columns:1fr}
         @media (min-width:768px){.jox-filters{grid-template-columns:repeat(2,1fr)}}
         @media (min-width:1024px){.jox-filters{grid-template-columns:1.5fr repeat(3,1fr)}}
         @media (min-width:1280px){.jox-filters{grid-template-columns:1.5fr repeat(6,1fr)}}
-        .jox-alert{display:flex;align-items:center;gap:.6rem;padding:1rem 1.2rem;border-radius:14px;border:1px solid;animation:jox-fade .2s ease-out;font-weight:600}
+        .jox-alert{display:flex;align-items:center;gap:.5rem;padding:0.6rem 0.9rem;border-radius:10px;border:1px solid;animation:jox-fade .2s ease-out;font-weight:600;font-size:0.85rem}
         .jox-alert--error{background:#fef2f2 !important;color:#dc2626 !important;border-color:#fecaca !important}
-        .jox-skel{padding:3rem;text-align:center;border-radius:14px;color:#64748b;font-weight:700;
+        .jox-skel{padding:2rem;text-align:center;border-radius:10px;color:#64748b;font-weight:700;
           background:linear-gradient(to right,#f1f5f9 8%,#e2e8f0 18%,#f1f5f9 33%);background-size:800px 104px;animation:jox-shimmer 1.5s infinite linear}
-        .jox-th--expander{width:42px;text-align:center}
+        .jox-th--expander{width:36px;text-align:center}
         .jox-td--expander{text-align:center}
-        .jox-expander{background:#eff6ff !important;border:1px solid #bfdbfe !important;color:#2563eb !important;border-radius:10px;padding:.3rem .55rem;cursor:pointer;font-weight:800;transition:all .15s ease}
+        .jox-expander{background:#eff6ff !important;border:1px solid #bfdbfe !important;color:#2563eb !important;border-radius:8px;padding:.2rem .45rem;cursor:pointer;font-weight:800;font-size:0.75rem;transition:all .15s ease}
         .jox-expander:hover{background:#dbeafe !important}
         .jox-tr--details td{background:#f8fafc !important}
-        .jox-td--details{padding:1.2rem !important}
+        .jox-td--details{padding:0.75rem !important}
         .jox-prio{
-          display:inline-flex; align-items:center; gap:.35rem;
-          padding:.3rem .7rem; border-radius:999px; font-size:.78rem; font-weight:800;
+          display:inline-flex; align-items:center; gap:.25rem;
+          padding:.2rem .55rem; border-radius:999px; font-size:.72rem; font-weight:800;
           border:1px solid transparent; letter-spacing:.02em; text-transform:uppercase;
         }
         .jox-prio--high{ background:#fef2f2 !important; color:#dc2626 !important; border-color:#fecaca !important; }
         .jox-prio--med { background:#eff6ff !important; color:#2563eb !important; border-color:#bfdbfe !important; }
         .jox-prio--low { background:#ecfdf5 !important; color:#059669 !important; border-color:#a7f3d0 !important; }
 
-        .jox-detail{display:grid;grid-template-columns:repeat(2,minmax(220px,1fr));gap:12px 18px}
-        @media (min-width:1280px){.jox-detail{grid-template-columns:repeat(3,minmax(220px,1fr))}}
-        @media (min-width:1680px){.jox-detail{grid-template-columns:repeat(4,minmax(220px,1fr))}}
-        .jox-detail__item{background:#fff !important;border:1px solid #cbd5e1 !important;border-radius:12px !important;padding:.75rem 1rem !important;box-shadow:0 1px 3px rgba(0,0,0,0.03)}
-        .jox-detail__label{font-size:.78rem;color:#64748b;text-transform:uppercase;letter-spacing:.05em;margin-bottom:.3rem;font-weight:800}
-        .jox-detail__value{color:#0f172a;font-weight:600;word-break:break-word}
-        .jox-btn--sm{padding:.45rem .8rem;font-size:.84rem;border-radius:10px}
-        .jox-tablewrap{overflow-x:auto;border:1px solid #cbd5e1 !important;border-radius:18px !important;background:#ffffff !important;
-          box-shadow:0 10px 25px -5px rgba(37, 99, 235, 0.08) !important;margin-top:1.2rem;animation:jox-fade .25s ease-out}
-        .jox-table{width:100%;min-width:1500px;border-collapse:collapse;font-size:.94rem}
+        .jox-detail{display:grid;grid-template-columns:repeat(2,minmax(200px,1fr));gap:8px 14px}
+        @media (min-width:1280px){.jox-detail{grid-template-columns:repeat(3,minmax(200px,1fr))}}
+        @media (min-width:1680px){.jox-detail{grid-template-columns:repeat(4,minmax(200px,1fr))}}
+        .jox-detail__item{background:#fff !important;border:1px solid #cbd5e1 !important;border-radius:10px !important;padding:.5rem .75rem !important;box-shadow:0 1px 2px rgba(0,0,0,0.03)}
+        .jox-detail__label{font-size:.72rem;color:#64748b;text-transform:uppercase;letter-spacing:.05em;margin-bottom:.2rem;font-weight:800}
+        .jox-detail__value{color:#0f172a;font-weight:600;word-break:break-word;font-size:.85rem}
+        .jox-btn--sm{padding:.35rem .65rem;font-size:.8rem;border-radius:8px}
+        .jox-tablewrap{overflow-x:auto;border:1px solid #94a3b8 !important;border-radius:14px !important;background:#ffffff !important;
+          box-shadow:0 8px 20px -4px rgba(37, 99, 235, 0.06) !important;margin-top:0.75rem;animation:jox-fade .25s ease-out}
+        .jox-table{width:100%;min-width:1500px;border-collapse:collapse;font-size:.85rem;border:1px solid #cbd5e1 !important}
         .jox-thead{position:sticky;top:0;z-index:5}
-        .jox-th{text-align:left;padding:1rem 1.2rem;background:linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%) !important;color:#ffffff !important;border-bottom:2px solid #1e293b !important;white-space:nowrap;user-select:none;cursor:pointer;position:relative;font-size:12px;font-weight:800;letter-spacing:0.06em;text-transform:uppercase}
+        .jox-th{text-align:left;padding:0.55rem 0.75rem;background:linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%) !important;color:#ffffff !important;border:1px solid #334155 !important;white-space:nowrap;user-select:none;cursor:pointer;position:relative;font-size:11px;font-weight:800;letter-spacing:0.05em;text-transform:uppercase}
         .jox-th:hover{background:linear-gradient(135deg, #1e293b 0%, #1e40af 100%) !important}
         .jox-th--active{background:linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%) !important;color:#ffffff !important;}
-        .jox-th__label{margin-right:.35rem;font-weight:800}
-        .jox-th__sort{opacity:.9;font-size:.85rem}
-        .jox-th--actions{width:160px;text-align:center}
+        .jox-th__label{margin-right:.3rem;font-weight:800}
+        .jox-th__sort{opacity:.9;font-size:.8rem}
+        .jox-th--actions{width:150px;text-align:center}
         .jox-tr:nth-child(even){background:#f8fafc}
         .jox-tr:hover{background:#eff6ff !important;transition:background .15s ease}
-        .jox-td{padding:1rem 1.2rem;border-bottom:1px solid #e2e8f0;color:#0f172a;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500}
+        .jox-td{padding:0.45rem 0.75rem;border:1px solid #cbd5e1 !important;color:#0f172a;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500;font-size:.85rem}
         .jox-td:hover{background:rgba(37, 99, 235, 0.04)}
         .jox-td.is-num{text-align:right;font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-weight:700}
         .jox-td--actions{text-align:center}
-        .jox-empty{padding:3rem;text-align:center;color:#64748b;font-size:1rem;font-weight:600;background:#f8fafc}
-        .jox-muted{color:#94a3b8}
-        .jox-pager{display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap;margin-top:1.2rem;color:#475569;font-size:.94rem;font-weight:600}
-        .jox-pager__controls{display:flex;align-items:center;gap:.6rem}
-        .jox-pager__page{padding:.4rem .8rem;border-radius:10px;background:#ffffff;border:1px solid #cbd5e1;font-weight:700;color:#0f172a;box-shadow:0 1px 3px rgba(0,0,0,0.05)}
-        .jox-modal{position:fixed;inset:0;background:rgba(15,23,42,.55);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;z-index:9999;animation:jox-fade .15s ease-out}
-        .jox-modal__card{background:#fff;border-radius:20px;padding:16px;width:92vw;max-width:1400px;max-height:90vh;box-shadow:0 25px 50px -12px rgba(15,23,42,.35);display:grid;gap:12px;border:1px solid #cbd5e1}
-        .jox-modal__head{display:flex;align-items:center;justify-content:space-between;padding:12px 18px;background:linear-gradient(135deg, #0f172a 0%, #1e3a8a 50%, #2563eb 100%);border-radius:14px;color:#ffffff}
-        .jox-modal__title{color:#ffffff;font-size:1.15rem;font-weight:800;margin:0}
-        .jox-modal__body{overflow:hidden}
-        .jox-modal__frame{width:100%;height:80vh;border:none;border-radius:12px;background:#000}
+        .jox-kpis {
+          display: grid;
+          grid-template-columns: repeat(2, 1fr);
+          gap: 0.6rem;
+          margin-top: 0.75rem;
+        }
+        @media (min-width: 768px) {
+          .jox-kpis {
+            grid-template-columns: repeat(4, 1fr);
+          }
+        }
+        .jox-kpi-card {
+          background: #ffffff !important;
+          border: 1px solid #cbd5e1 !important;
+          border-radius: 12px !important;
+          padding: 0.6rem 0.85rem !important;
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+          box-shadow: 0 4px 12px rgba(15, 23, 42, 0.03) !important;
+          transition: transform 0.15s ease, box-shadow 0.15s ease;
+        }
+        .jox-kpi-card:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 6px 16px rgba(37, 99, 235, 0.08) !important;
+        }
+        .jox-kpi-icon {
+          width: 38px;
+          height: 38px;
+          border-radius: 10px;
+          display: grid;
+          place-items: center;
+          font-size: 17px;
+          flex-shrink: 0;
+        }
+        .jox-kpi-val {
+          font-size: 1.15rem;
+          font-weight: 800;
+          color: #0f172a;
+          line-height: 1.2;
+        }
+        .jox-kpi-lbl {
+          font-size: 0.72rem;
+          font-weight: 700;
+          color: #64748b;
+          text-transform: uppercase;
+          letter-spacing: 0.04em;
+        }
+
+        .jox-job-badge {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.2rem;
+          background: #0f172a !important;
+          color: #60a5fa !important;
+          padding: 0.15rem 0.5rem;
+          border-radius: 6px;
+          font-weight: 800;
+          font-size: 0.78rem;
+          letter-spacing: 0.03em;
+        }
+        .jox-lot-badge {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.2rem;
+          background: #eff6ff !important;
+          color: #1d4ed8 !important;
+          border: 1px solid #bfdbfe !important;
+          padding: 0.15rem 0.5rem;
+          border-radius: 6px;
+          font-weight: 800;
+          font-size: 0.78rem;
+        }
+
+        .jox-status-badge {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.3rem;
+          padding: 0.3rem 0.7rem;
+          border-radius: 8px;
+          font-size: 0.78rem;
+          font-weight: 700;
+        }
+        .jox-status-badge--success {
+          background: #dcfce7 !important;
+          color: #15803d !important;
+          border: 1px solid #bbf7d0 !important;
+        }
+
+        .jox-adv-panel {
+          margin-top: 0.6rem;
+          padding-top: 0.6rem;
+          border-top: 1px dashed #cbd5e1;
+          display: grid;
+          gap: 0.6rem;
+          grid-template-columns: 1fr;
+          animation: jox-fade 0.2s ease-out;
+        }
+        @media (min-width: 768px) { .jox-adv-panel { grid-template-columns: repeat(2, 1fr); } }
+        @media (min-width: 1024px) { .jox-adv-panel { grid-template-columns: repeat(4, 1fr); } }
+        @media (min-width: 1280px) { .jox-adv-panel { grid-template-columns: repeat(6, 1fr); } }
+
+        .jox-pager {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          gap: 0.75rem;
+          flex-wrap: wrap;
+          margin-top: 0.75rem;
+          padding: 0.6rem 1rem !important;
+          background: #ffffff !important;
+          border: 1px solid #cbd5e1 !important;
+          border-radius: 14px !important;
+          box-shadow: 0 4px 14px rgba(15, 23, 42, 0.04) !important;
+          color: #475569;
+          font-size: 0.85rem;
+          font-weight: 600;
+        }
+        .jox-pager__info {
+          display: flex;
+          align-items: center;
+          gap: 0.4rem;
+          font-weight: 700;
+          color: #0f172a;
+        }
+        .jox-pager__page {
+          padding: 0.35rem 0.75rem;
+          border-radius: 8px;
+          background: #eff6ff !important;
+          border: 1px solid #bfdbfe !important;
+          font-weight: 800;
+          color: #1d4ed8 !important;
+          font-size: 0.82rem;
+        }
       `}</style>
 
       <div className="jox jox-theme">
@@ -5021,22 +5196,87 @@ const JobOrders = () => {
           </div>
         </header>
 
+        {/* ===== KPI Metrics Bar ===== */}
+        <div className="jox-kpis">
+          <div className="jox-kpi-card">
+            <div className="jox-kpi-icon" style={{ background: "#eff6ff", color: "#2563eb" }}>📊</div>
+            <div>
+              <div className="jox-kpi-val">{filtered.length}</div>
+              <div className="jox-kpi-lbl">Matching Orders</div>
+            </div>
+          </div>
+          <div className="jox-kpi-card">
+            <div className="jox-kpi-icon" style={{ background: "#f0fdf4", color: "#15803d" }}>✅</div>
+            <div>
+              <div className="jox-kpi-val">{kpiStats.generated}</div>
+              <div className="jox-kpi-lbl">PDF Generated</div>
+            </div>
+          </div>
+          <div className="jox-kpi-card">
+            <div className="jox-kpi-icon" style={{ background: "#fef2f2", color: "#dc2626" }}>⚠️</div>
+            <div>
+              <div className="jox-kpi-val">{kpiStats.pending}</div>
+              <div className="jox-kpi-lbl">PDF Pending</div>
+            </div>
+          </div>
+          <div className="jox-kpi-card">
+            <div className="jox-kpi-icon" style={{ background: "#faf5ff", color: "#7e22ce" }}>🔢</div>
+            <div>
+              <div className="jox-kpi-val">{lotOpts.length}</div>
+              <div className="jox-kpi-lbl">Total Unique Lots</div>
+            </div>
+          </div>
+        </div>
+
         {/* ===== Filters ===== */}
         <section className="jox-panel">
           <div className="jox-panel__head">
-            <h2 className="jox-panel__title"><span className="jox-ico">🔍</span>Filters & Search</h2>
-            <button className="jox-btn jox-btn--ghost" onClick={clearFilters}>
-              <span className="jox-ico">🔄</span><span>Reset Filters</span>
-            </button>
+            <h2 className="jox-panel__title">
+              <span className="jox-ico">🔍</span>
+              <span>Filters & Search</span>
+              {activeFilterCount > 0 && (
+                <span className="jox-badge" style={{ background: "#2563eb", color: "#fff" }}>
+                  {activeFilterCount} active
+                </span>
+              )}
+            </h2>
+            <div style={{ display: "flex", gap: ".5rem" }}>
+              <button
+                className="jox-btn jox-btn--ghost"
+                onClick={() => setShowAdvFilters((prev) => !prev)}
+                title="Toggle more specific filters"
+              >
+                <span className="jox-ico">{showAdvFilters ? "▲" : "⚙️"}</span>
+                <span>{showAdvFilters ? "Hide Advanced" : "More Filters"}</span>
+                {activeFilterCount > 0 && <span>({activeFilterCount})</span>}
+              </button>
+              <button className="jox-btn jox-btn--ghost" onClick={clearFilters} title="Reset all filters">
+                <span className="jox-ico">🔄</span><span>Reset</span>
+              </button>
+            </div>
           </div>
 
-          <div className="jox-filters">
+          {/* Primary Quick Filters */}
+          <div className="jox-filters" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))" }}>
             <input
               className="jox-input jox-input--search"
               value={q}
               onChange={(e) => { setQ(e.target.value); setPage(1); }}
-              placeholder="Search by party, JO no, fabric, shade…"
+              placeholder="Search party, JO, fabric, shade…"
+              style={{ gridColumn: "span 2" }}
             />
+
+            <select
+              className="jox-select"
+              value={fPdfStatus}
+              onChange={(e) => { setFPdfStatus(e.target.value); setPage(1); }}
+              title="Filter by PDF Generation Status"
+              style={fPdfStatus === "not_created" ? { background: "#fef2f2", borderColor: "#fecaca", color: "#dc2626", fontWeight: "700" } : fPdfStatus === "created" ? { background: "#f0fdf4", borderColor: "#bbf7d0", color: "#166534", fontWeight: "700" } : {}}
+            >
+              <option value="">📄 All PDF Status</option>
+              <option value="not_created">⚠️ JobOrder PDF Not Created</option>
+              <option value="created">✅ JobOrder PDF Created</option>
+            </select>
 
             <select className="jox-select" value={fFabric} onChange={(e) => { setFFabric(e.target.value); setPage(1); }} title="Filter by Fabric">
               <option value="">👗 All Fabrics</option>
@@ -5048,132 +5288,142 @@ const JobOrders = () => {
               {brandOpts.map((v) => <option key={v} value={v}>{v}</option>)}
             </select>
 
-            <select className="jox-select" value={fShade} onChange={(e) => { setFShade(e.target.value); setPage(1); }} title="Filter by Shade">
-              <option value="">🎨 All Shades</option>
-              {shadeOpts.map((v) => <option key={v} value={v}>{v}</option>)}
-            </select>
-
             <select className="jox-select" value={fParty} onChange={(e) => { setFParty(e.target.value); setPage(1); }} title="Filter by Party">
               <option value="">👥 All Parties</option>
               {partyOpts.map((v) => <option key={v} value={v}>{v}</option>)}
             </select>
-
-            <select className="jox-select" value={fSeason} onChange={(e) => { setFSeason(e.target.value); setPage(1); }} title="Filter by Season">
-              <option value="">🌦️ All Seasons</option>
-              {seasonOpts.map((v) => <option key={v} value={v}>{v}</option>)}
-            </select>
-
-            <select className="jox-select" value={fUnit} onChange={(e) => { setFUnit(e.target.value); setPage(1); }} title="Filter by Unit">
-              <option value="">📦 All Units</option>
-              {unitOpts.map((v) => <option key={v} value={v}>{v}</option>)}
-            </select>
-            <select className="jox-select" value={fTapeLace} onChange={(e) => { setFTapeLace(e.target.value); setPage(1); }} title="Filter by Tape/Lace">
-              <option value="">🎗️ All Tape/Lace</option>
-              {tapeLaceOpts.map((v) => <option key={v} value={v}>{v}</option>)}
-            </select>
-
-            <select className="jox-select" value={fBottomType} onChange={(e) => { setFBottomType(e.target.value); setPage(1); }} title="Filter by Bottom Type">
-              <option value="">👖 All Bottom Types</option>
-              {bottomTypeOpts.map((v) => <option key={v} value={v}>{v}</option>)}
-            </select>
-
-            <select className="jox-select" value={fZip} onChange={(e) => { setFZip(e.target.value); setPage(1); }} title="Filter by Zip">
-              <option value="">🤐 All Zips</option>
-              {zipOpts.map((v) => <option key={v} value={v}>{v}</option>)}
-            </select>
-            <select className="jox-select" value={fSticker} onChange={(e) => { setFSticker(e.target.value); setPage(1); }} title="Filter by Sticker">
-              <option value="">🏷️ All Stickers</option>
-              {stickerOpts.map((v) => <option key={v} value={v}>{v}</option>)}
-            </select>
-            <select className="jox-select" value={fCollar} onChange={(e) => { setFCollar(e.target.value); setPage(1); }} title="Filter by Collar">
-              <option value="">👕 All Collars</option>
-              {collarOpts.map((v) => <option key={v} value={v}>{v}</option>)}
-            </select>
-
-            <select className="jox-select" value={fBone} onChange={(e) => { setFBone(e.target.value); setPage(1); }} title="Filter by Bone">
-              <option value="">🦴 All Bones</option>
-              {boneOpts.map((v) => <option key={v} value={v}>{v}</option>)}
-            </select>
-            <select className="jox-select" value={fFullBaju} onChange={(e) => { setFFullBaju(e.target.value); setPage(1); }} title="Filter by Full Baju">
-              <option value="">👗 All Full Baju</option>
-              {fullBajuOpts.map((v) => <option key={v} value={v}>{v}</option>)}
-            </select>
-
-            <select className="jox-select" value={fDS} onChange={(e) => { setFDS(e.target.value); setPage(1); }} title="Filter by Direct Stitching">
-              <option value="">🧵 DS: Any</option>
-              {dsOpts.map((v) => <option key={v} value={v}>{v}</option>)}
-            </select>
-
-            <select className="jox-select" value={fLot} onChange={(e) => { setFLot(e.target.value); setPage(1); }} title="Filter by Lot Number">
-              <option value="">🔢 All Lot Numbers</option>
-              {lotOpts.map((v) => <option key={v} value={v}>{v}</option>)}
-            </select>
-
-            <select className="jox-select" value={fSection} onChange={(e) => { setFSection(e.target.value); setPage(1); }} title="Filter by Section">
-              <option value="">🏢 All Sections</option>
-              {sectionOpts.map((v) => <option key={v} value={v}>{v}</option>)}
-            </select>
-
-            <select className="jox-select" value={fPattern} onChange={(e) => { setFPattern(e.target.value); setPage(1); }} title="Filter by Pattern">
-              <option value="">🧵 All Patterns</option>
-              {patternOpts.map((v) => <option key={v} value={v}>{v}</option>)}
-            </select>
-            <select
-              className="jox-select"
-              value={fPriority}
-              onChange={(e) => { setFPriority(e.target.value); setPage(1); }}
-              title="Filter by Priority"
-            >
-              <option value="">⚡ All Priorities</option>
-              {priorityOpts.map((v) => <option key={v} value={v}>{v}</option>)}
-            </select>
-
-            <select className="jox-select" value={fSubmittedBy} onChange={(e) => { setFSubmittedBy(e.target.value); setPage(1); }} title="Filter by Submitted By">
-              <option value="">👤 All Submitters</option>
-              {submittedByOpts.map((v) => <option key={v} value={v}>{v}</option>)}
-            </select>
-            {/* ===== Range Filters ===== */}
-            <div>
-              <div style={{ fontSize: '.82rem', fontWeight: 700, color: 'var(--jox-text-sub)', margin: '0 0 .35rem .25rem' }}>
-                Job Order No — Range
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '.5rem' }}>
-                <input
-                  className="jox-input"
-                  placeholder="From (e.g., JO-100)"
-                  value={joStart}
-                  onChange={(e) => { setJoStart(e.target.value); setPage(1); }}
-                />
-                <input
-                  className="jox-input"
-                  placeholder="To (e.g., JO-150)"
-                  value={joEnd}
-                  onChange={(e) => { setJoEnd(e.target.value); setPage(1); }}
-                />
-              </div>
-            </div>
-
-            <div>
-              <div style={{ fontSize: '.82rem', fontWeight: 700, color: 'var(--jox-text-sub)', margin: '0 0 .35rem .25rem' }}>
-                Lot Number — Range
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '.5rem' }}>
-                <input
-                  className="jox-input"
-                  placeholder="From (e.g., 1001)"
-                  value={lotStart}
-                  onChange={(e) => { setLotStart(e.target.value); setPage(1); }}
-                />
-                <input
-                  className="jox-input"
-                  placeholder="To (e.g., 1020)"
-                  value={lotEnd}
-                  onChange={(e) => { setLotEnd(e.target.value); setPage(1); }}
-                />
-              </div>
-            </div>
-
           </div>
+
+          {/* Collapsible Advanced Filters */}
+          {showAdvFilters && (
+            <div className="jox-adv-panel">
+              <select className="jox-select" value={fShade} onChange={(e) => { setFShade(e.target.value); setPage(1); }} title="Filter by Shade">
+                <option value="">🎨 All Shades</option>
+                {shadeOpts.map((v) => <option key={v} value={v}>{v}</option>)}
+              </select>
+
+              <select className="jox-select" value={fSeason} onChange={(e) => { setFSeason(e.target.value); setPage(1); }} title="Filter by Season">
+                <option value="">🌦️ All Seasons</option>
+                {seasonOpts.map((v) => <option key={v} value={v}>{v}</option>)}
+              </select>
+
+              <select className="jox-select" value={fUnit} onChange={(e) => { setFUnit(e.target.value); setPage(1); }} title="Filter by Unit">
+                <option value="">📦 All Units</option>
+                {unitOpts.map((v) => <option key={v} value={v}>{v}</option>)}
+              </select>
+
+              <select className="jox-select" value={fTapeLace} onChange={(e) => { setFTapeLace(e.target.value); setPage(1); }} title="Filter by Tape/Lace">
+                <option value="">🎗️ All Tape/Lace</option>
+                {tapeLaceOpts.map((v) => <option key={v} value={v}>{v}</option>)}
+              </select>
+
+              <select className="jox-select" value={fBottomType} onChange={(e) => { setFBottomType(e.target.value); setPage(1); }} title="Filter by Bottom Type">
+                <option value="">👖 All Bottom Types</option>
+                {bottomTypeOpts.map((v) => <option key={v} value={v}>{v}</option>)}
+              </select>
+
+              <select className="jox-select" value={fZip} onChange={(e) => { setFZip(e.target.value); setPage(1); }} title="Filter by Zip">
+                <option value="">🤐 All Zips</option>
+                {zipOpts.map((v) => <option key={v} value={v}>{v}</option>)}
+              </select>
+
+              <select className="jox-select" value={fSticker} onChange={(e) => { setFSticker(e.target.value); setPage(1); }} title="Filter by Sticker">
+                <option value="">🏷️ All Stickers</option>
+                {stickerOpts.map((v) => <option key={v} value={v}>{v}</option>)}
+              </select>
+
+              <select className="jox-select" value={fCollar} onChange={(e) => { setFCollar(e.target.value); setPage(1); }} title="Filter by Collar">
+                <option value="">👕 All Collars</option>
+                {collarOpts.map((v) => <option key={v} value={v}>{v}</option>)}
+              </select>
+
+              <select className="jox-select" value={fBone} onChange={(e) => { setFBone(e.target.value); setPage(1); }} title="Filter by Bone">
+                <option value="">🦴 All Bones</option>
+                {boneOpts.map((v) => <option key={v} value={v}>{v}</option>)}
+              </select>
+
+              <select className="jox-select" value={fFullBaju} onChange={(e) => { setFFullBaju(e.target.value); setPage(1); }} title="Filter by Full Baju">
+                <option value="">👗 All Full Baju</option>
+                {fullBajuOpts.map((v) => <option key={v} value={v}>{v}</option>)}
+              </select>
+
+              <select className="jox-select" value={fDS} onChange={(e) => { setFDS(e.target.value); setPage(1); }} title="Filter by Direct Stitching">
+                <option value="">🧵 DS: Any</option>
+                {dsOpts.map((v) => <option key={v} value={v}>{v}</option>)}
+              </select>
+
+              <select className="jox-select" value={fLot} onChange={(e) => { setFLot(e.target.value); setPage(1); }} title="Filter by Lot Number">
+                <option value="">🔢 All Lot Numbers</option>
+                {lotOpts.map((v) => <option key={v} value={v}>{v}</option>)}
+              </select>
+
+              <select className="jox-select" value={fSection} onChange={(e) => { setFSection(e.target.value); setPage(1); }} title="Filter by Section">
+                <option value="">🏢 All Sections</option>
+                {sectionOpts.map((v) => <option key={v} value={v}>{v}</option>)}
+              </select>
+
+              <select className="jox-select" value={fPattern} onChange={(e) => { setFPattern(e.target.value); setPage(1); }} title="Filter by Pattern">
+                <option value="">🧵 All Patterns</option>
+                {patternOpts.map((v) => <option key={v} value={v}>{v}</option>)}
+              </select>
+
+              <select
+                className="jox-select"
+                value={fPriority}
+                onChange={(e) => { setFPriority(e.target.value); setPage(1); }}
+                title="Filter by Priority"
+              >
+                <option value="">⚡ All Priorities</option>
+                {priorityOpts.map((v) => <option key={v} value={v}>{v}</option>)}
+              </select>
+
+              <select className="jox-select" value={fSubmittedBy} onChange={(e) => { setFSubmittedBy(e.target.value); setPage(1); }} title="Filter by Submitted By">
+                <option value="">👤 All Submitters</option>
+                {submittedByOpts.map((v) => <option key={v} value={v}>{v}</option>)}
+              </select>
+
+              {/* Range Filters */}
+              <div>
+                <div style={{ fontSize: '.78rem', fontWeight: 700, color: 'var(--jox-text-sub)', margin: '0 0 .25rem .25rem' }}>
+                  Job Order No Range
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '.4rem' }}>
+                  <input
+                    className="jox-input"
+                    placeholder="From (e.g., JO-100)"
+                    value={joStart}
+                    onChange={(e) => { setJoStart(e.target.value); setPage(1); }}
+                  />
+                  <input
+                    className="jox-input"
+                    placeholder="To (e.g., JO-150)"
+                    value={joEnd}
+                    onChange={(e) => { setJoEnd(e.target.value); setPage(1); }}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <div style={{ fontSize: '.78rem', fontWeight: 700, color: 'var(--jox-text-sub)', margin: '0 0 .25rem .25rem' }}>
+                  Lot Number Range
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '.4rem' }}>
+                  <input
+                    className="jox-input"
+                    placeholder="From (e.g., 1001)"
+                    value={lotStart}
+                    onChange={(e) => { setLotStart(e.target.value); setPage(1); }}
+                  />
+                  <input
+                    className="jox-input"
+                    placeholder="To (e.g., 1020)"
+                    value={lotEnd}
+                    onChange={(e) => { setLotEnd(e.target.value); setPage(1); }}
+                  />
+                </div>
+              </div>
+            </div>
+          )}
         </section>
 
         {/* ===== Status / Errors ===== */}
@@ -5248,8 +5498,12 @@ const JobOrders = () => {
 
                             {VISIBLE_HEADERS.map((H) => (
                               <td key={H} className={"jox-td " + (H === "Quantity" ? "is-num" : "")}>
-                                {H === "Priority"
-                                  ? (() => {
+                                {H === "Job Order No" ? (
+                                  <strong style={{ color: "#0f172a", fontWeight: 800 }}>{r[H] || "—"}</strong>
+                                ) : H === "Lot Number" ? (
+                                  <strong style={{ color: "#1d4ed8", fontWeight: 700 }}>{r[H] || "—"}</strong>
+                                ) : H === "Priority" ? (
+                                  (() => {
                                     const priorityValue = r["Priority"] || "";
                                     const priorityStr = priorityValue.toString();
                                     const priorityUpper = priorityStr.toUpperCase();
@@ -5276,19 +5530,23 @@ const JobOrders = () => {
                                     }
                                     return <span className="jox-prio">—</span>;
                                   })()
-                                  : H === "FULL BAJU"
-                                    ? (() => {
-                                      const value = r["FULL BAJU"] || "—";
-                                      if (value === "YES" || value === "Yes" || value === "yes") {
-                                        return <span style={{ color: "green", fontWeight: "bold" }}>✓ YES</span>;
-                                      } else if (value === "NO" || value === "No" || value === "no") {
-                                        return <span style={{ color: "red", fontWeight: "bold" }}>✗ NO</span>;
-                                      }
-                                      return value;
-                                    })()
-                                    : formatCell(H, r[H])}
+                                ) : H === "FULL BAJU" ? (
+                                  (() => {
+                                    const value = r["FULL BAJU"] || "—";
+                                    if (value === "YES" || value === "Yes" || value === "yes") {
+                                      return <span style={{ color: "green", fontWeight: "bold" }}>✓ YES</span>;
+                                    } else if (value === "NO" || value === "No" || value === "no") {
+                                      return <span style={{ color: "red", fontWeight: "bold" }}>✗ NO</span>;
+                                    }
+                                    return value;
+                                  })()
+                                ) : (
+                                  formatCell(H, r[H])
+                                )}
                               </td>
-                            ))}                            {/* Actions */}
+                            ))}
+
+                            {/* Actions */}
                             <td className="jox-td jox-td--actions">
                               {(() => {
                                 const hasLot = Boolean((r["Lot Number"] ?? "").toString().trim());
@@ -5299,15 +5557,21 @@ const JobOrders = () => {
                                 // UPDATED - Check if lot already has at least one successful PDF generation
                                 const hasExistingSuccessfulPdf = generatedLots.has(lotNumber);
 
+                                if (hasExistingSuccessfulPdf) {
+                                  return (
+                                    <span className="jox-status-badge jox-status-badge--success" title="PDF already successfully generated for this Lot Number">
+                                      <span className="jox-ico">✅</span> Already Generated
+                                    </span>
+                                  );
+                                }
+
                                 // Determine disabled state
-                                const isDisabled = !hasLot || Boolean(pdfBusyId) || hasExistingSuccessfulPdf;
+                                const isDisabled = !hasLot || Boolean(pdfBusyId);
 
                                 // Determine title message
                                 let titleMessage = "";
                                 if (!hasLot) {
                                   titleMessage = "No Lot Number — cannot export";
-                                } else if (hasExistingSuccessfulPdf) {
-                                  titleMessage = "PDF already successfully generated for this Lot Number - further generation blocked";
                                 } else if (isBusyThis) {
                                   titleMessage = "Generating…";
                                 } else {
@@ -5321,12 +5585,8 @@ const JobOrders = () => {
                                     disabled={isDisabled}
                                     title={titleMessage}
                                   >
-                                    <span className="jox-ico">
-                                      {isBusyThis ? "⏳" : (hasExistingSuccessfulPdf ? "✅" : "📝")}
-                                    </span>
-                                    <span>
-                                      {isBusyThis ? "Working…" : (hasExistingSuccessfulPdf ? "Already Generated" : "Create JobOrder Pdf")}
-                                    </span>
+                                    <span className="jox-ico">{isBusyThis ? "⏳" : "📝"}</span>
+                                    <span>{isBusyThis ? "Working…" : "Create JobOrder Pdf"}</span>
                                   </button>
                                 );
                               })()}
@@ -5398,6 +5658,16 @@ const JobOrders = () => {
                                       );
                                     }
                                     if (H === "Lot Number") return null; // already visible
+                                    if (H === "Shade") {
+                                      return (
+                                        <div key={H} className="jox-detail__item" style={{ background: "#eff6ff", borderColor: "#93c5fd" }}>
+                                          <div className="jox-detail__label" style={{ color: "#1d4ed8" }}>🎨 {H}</div>
+                                          <div className="jox-detail__value" style={{ fontWeight: 700, color: "#1e40af" }}>
+                                            {formatCell(H, r[H]) || "—"}
+                                          </div>
+                                        </div>
+                                      );
+                                    }
                                     return (
                                       <div key={H} className="jox-detail__item">
                                         <div className="jox-detail__label">{H}</div>
@@ -5420,11 +5690,23 @@ const JobOrders = () => {
             {/* ===== Pagination ===== */}
             <div className="jox-pager">
               <div className="jox-pager__info">
-                📊 Showing {start + 1}-{Math.min(start + pageSize, sorted.length)} of {sorted.length}
+                <span>📊</span>
+                <span>
+                  Showing <strong>{start + 1}–{Math.min(start + pageSize, sorted.length)}</strong> of <strong>{sorted.length.toLocaleString()}</strong> job orders
+                </span>
               </div>
               <div className="jox-pager__controls">
                 <button
-                  className="jox-btn jox-btn--light"
+                  className="jox-btn jox-btn--ghost jox-btn--sm"
+                  onClick={() => setPage(1)}
+                  disabled={pageSafe === 1}
+                  title="First Page"
+                >
+                  <span>⏮️ First</span>
+                </button>
+
+                <button
+                  className="jox-btn jox-btn--light jox-btn--sm"
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
                   disabled={pageSafe === 1}
                 >
@@ -5434,11 +5716,20 @@ const JobOrders = () => {
                 <span className="jox-pager__page">Page {pageSafe} of {totalPages}</span>
 
                 <button
-                  className="jox-btn jox-btn--light"
+                  className="jox-btn jox-btn--light jox-btn--sm"
                   onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                   disabled={pageSafe === totalPages}
                 >
                   <span>Next</span><span className="jox-ico">➡️</span>
+                </button>
+
+                <button
+                  className="jox-btn jox-btn--ghost jox-btn--sm"
+                  onClick={() => setPage(totalPages)}
+                  disabled={pageSafe === totalPages}
+                  title="Last Page"
+                >
+                  <span>Last ⏭️</span>
                 </button>
               </div>
             </div>

@@ -161,6 +161,9 @@ const buildGeneratedMapsFromJobOrder = (rows, lotKeyName) => {
   const challanItemsJSONKey =
     headerByNorm.get('challan items json') || headerByNorm.get('challan items') || 'Challan Items JSON';
 
+  const challanHistoryKey =
+    headerByNorm.get('challan history json') || headerByNorm.get('challan history') || 'Challan History JSON';
+
   const challanCompleteKey =
     headerByNorm.get('challan complete lot') || headerByNorm.get('challan complete') || 'Challan Complete Lot';
 
@@ -179,20 +182,47 @@ const buildGeneratedMapsFromJobOrder = (rows, lotKeyName) => {
     const comp = compRaw === 'true' || compRaw === 'yes' || compRaw === 'y' || compRaw === '1';
     if (comp) completeByLot[lot] = true;
 
-    const j = r[challanItemsJSONKey];
-    if (j && typeof j === 'string') {
+    // Primary: Parse per-shade from Challan History JSON (accumulates ALL challans)
+    const h = r[challanHistoryKey];
+    let hasHistoryItems = false;
+    if (h && typeof h === 'string') {
       try {
-        const parsed = JSON.parse(j);
-        const items = Array.isArray(parsed?.items) ? parsed.items : [];
-        for (const it of items) {
-          const shadeKey = normalizeShade(it?.shade || '');
-          const qty = parseNum(it?.qty);
-          if (!shadeKey || qty <= 0) continue;
-          if (!shadeByLot[lot]) shadeByLot[lot] = {};
-          shadeByLot[lot][shadeKey] = (shadeByLot[lot][shadeKey] || 0) + qty;
+        const histArr = JSON.parse(h);
+        if (Array.isArray(histArr)) {
+          for (const entry of histArr) {
+            if (entry?.completeLot) completeByLot[lot] = true;
+            const items = Array.isArray(entry?.items) ? entry.items : [];
+            for (const it of items) {
+              const shadeKey = normalizeShade(it?.shade || '');
+              const qty = parseNum(it?.qty);
+              if (!shadeKey || qty <= 0) continue;
+              if (!shadeByLot[lot]) shadeByLot[lot] = {};
+              shadeByLot[lot][shadeKey] = (shadeByLot[lot][shadeKey] || 0) + qty;
+              hasHistoryItems = true;
+            }
+          }
         }
-      } catch {
-        // ignore malformed JSON
+      } catch {}
+    }
+
+    // Fallback: Parse Challan Items JSON only if history did not yield per-shade items
+    if (!hasHistoryItems) {
+      const j = r[challanItemsJSONKey];
+      if (j && typeof j === 'string') {
+        try {
+          const parsed = JSON.parse(j);
+          if (parsed?.completeLot) completeByLot[lot] = true;
+          const items = Array.isArray(parsed?.items) ? parsed.items : [];
+          for (const it of items) {
+            const shadeKey = normalizeShade(it?.shade || '');
+            const qty = parseNum(it?.qty);
+            if (!shadeKey || qty <= 0) continue;
+            if (!shadeByLot[lot]) shadeByLot[lot] = {};
+            shadeByLot[lot][shadeKey] = (shadeByLot[lot][shadeKey] || 0) + qty;
+          }
+        } catch {
+          // ignore malformed JSON
+        }
       }
     }
   }

@@ -1,6 +1,19 @@
 import React, { useMemo, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "./auth/AuthContext";
+import { 
+  FiShield, 
+  FiLayout, 
+  FiShoppingBag, 
+  FiList, 
+  FiEdit3, 
+  FiScissors, 
+  FiPrinter, 
+  FiLogOut, 
+  FiChevronDown, 
+  FiUser,
+  FiActivity
+} from "react-icons/fi";
 
 export default function Header() {
   const { user, logout } = useAuth();
@@ -9,9 +22,12 @@ export default function Header() {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
 
   const navigationItems = [
-    { path: "/dashboard", name: "Dashboard" },
-    { path: "/sales-order", name: "Sales Order" },
-    { path: "/all-order-details", name: "All Orders" },
+    { path: "/dashboard", name: "Dashboard", icon: FiLayout },
+    { path: "/sales-order", name: "Sales Order", icon: FiShoppingBag },
+    { path: "/all-order-details", name: "All Orders", icon: FiList },
+    { path: "/job-order-amendment", name: "Job Order Amendment", icon: FiEdit3 },
+    { path: "/embroidery-challan", name: "Embroidery Challan", icon: FiScissors },
+    { path: "/printing-challan", name: "Printing Challan", icon: FiPrinter },
   ];
 
   const initials = useMemo(() => {
@@ -28,16 +44,24 @@ export default function Header() {
   return (
     <header className="hdr" role="banner">
       <div className="hdr__inner">
-        {/* Brand */}
+        {/* Brand Header */}
         <div className="brand">
           <Link to="/dashboard" className="brand__link" aria-label="Go to Dashboard">
-            <span className="brand__logo">JOB ORDER/SALE ORDER</span>
+            <div className="brand__badge">
+              <FiShield className="brand__icon" />
+              <span className="brand__pulse" />
+            </div>
+            <div className="brand__text">
+              <span className="brand__title">MH FACTORY SUITE</span>
+              <span className="brand__sub">Sales & Job Work ERP</span>
+            </div>
           </Link>
         </div>
 
-        {/* Desktop nav */}
+        {/* Desktop Nav */}
         <nav className="nav" role="navigation" aria-label="Primary">
           {navigationItems.map((item) => {
+            const Icon = item.icon;
             const active = location.pathname === item.path;
             return (
               <Link
@@ -45,14 +69,15 @@ export default function Header() {
                 to={item.path}
                 className={`nav__link ${active ? "is-active" : ""}`}
               >
+                <Icon className="nav__icon" />
                 <span>{item.name}</span>
-                <i aria-hidden="true" />
+                <i className="nav__indicator" aria-hidden="true" />
               </Link>
             );
           })}
         </nav>
 
-        {/* User + Mobile toggle */}
+        {/* User Profile + Controls */}
         <div className="user">
           {user ? (
             <div className="profile">
@@ -66,9 +91,9 @@ export default function Header() {
                   <span className="avatar" aria-hidden="true">{initials || "U"}</span>
                   <span className="id">
                     <span className="id__name">{user.username}</span>
-                    <span className="id__role">{user.role}</span>
+                    <span className="id__role">{user.role || user.department || "User"}</span>
                   </span>
-                  <span className={`chev ${isProfileOpen ? "open" : ""}`} aria-hidden="true" />
+                  <FiChevronDown className={`chev ${isProfileOpen ? "open" : ""}`} />
                 </button>
 
                 {isProfileOpen && (
@@ -77,14 +102,12 @@ export default function Header() {
                       <div className="avatar avatar--lg" aria-hidden="true">{initials || "U"}</div>
                       <div>
                         <div className="menu__name">{user.username}</div>
-                        <div className="menu__role">{user.role}</div>
+                        <div className="menu__role">{user.role || user.department || "User"}</div>
                       </div>
                     </div>
                     <div className="menu__sep" role="separator" />
-                    <button className="menu__item" role="menuitem" onClick={() => alert("Open settings")}>
-                      Settings
-                    </button>
-                    <button className="menu__item" role="menuitem" onClick={handleLogout}>
+                    <button className="menu__item logout" role="menuitem" onClick={handleLogout}>
+                      <FiLogOut className="menu__ic" />
                       Logout
                     </button>
                   </div>
@@ -95,13 +118,12 @@ export default function Header() {
             <Link to="/login" className="signin">Sign In</Link>
           )}
 
-          {/* Mobile hamburger (pure CSS) */}
+          {/* Mobile hamburger */}
           <button
             className={`ham ${isMenuOpen ? "is-open" : ""}`}
             onClick={() => setIsMenuOpen((v) => !v)}
             aria-label="Toggle menu"
             aria-expanded={isMenuOpen}
-            aria-controls="mnav"
           >
             <span />
             <span />
@@ -110,10 +132,11 @@ export default function Header() {
         </div>
       </div>
 
-      {/* Mobile drop-down (UNDER the header, not a side panel) */}
+      {/* Mobile drop-down */}
       {isMenuOpen && (
         <div id="mnav" className="mnav" role="navigation" aria-label="Mobile">
           {navigationItems.map((item) => {
+            const Icon = item.icon;
             const active = location.pathname === item.path;
             return (
               <Link
@@ -122,181 +145,407 @@ export default function Header() {
                 className={`mnav__link ${active ? "is-active" : ""}`}
                 onClick={() => setIsMenuOpen(false)}
               >
-                {item.name}
+                <Icon className="mnav__icon" />
+                <span>{item.name}</span>
               </Link>
             );
           })}
           {!user && (
             <Link to="/login" className="mnav__link" onClick={() => setIsMenuOpen(false)}>
-              Sign In
+              <FiUser className="mnav__icon" />
+              <span>Sign In</span>
             </Link>
           )}
         </div>
       )}
 
       <style>{`
-        /* ======= GLOBAL RESET to remove top white padding/space ======= */
-        html, body, #root {
-          height: 100%;
-        }
-        html, body {
-          margin: 0;
-          padding: 0;
-          background: #0b1220; /* your dark app background */
-          color: #e5e7eb;
-          font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
-        }
-
-        :root{
-          --bg: rgba(15,23,42,.55); /* header glass on dark */
-          --fg: #e5e7eb;
-          --muted:#94a3b8;
-          --accent:#6366f1;
-          --accent-2:#a855f7;
-          --ring: rgba(99,102,241,.25);
-          --line: rgba(255,255,255,.12);
-          --white:#ffffff;
-          --radius: 14px;
-          --shadow: 0 12px 32px rgba(0,0,0,.35);
-        }
-        @media (prefers-color-scheme: light){
-          :root{
-            --bg: rgba(255,255,255,.7);
-            --fg: #0f172a;
-            --muted:#475569;
-            --line: rgba(15,23,42,.08);
-            --shadow: 0 10px 24px rgba(15,23,42,.10);
-          }
-          body{ background:#f8fafc; color:#0f172a; }
+        /* ======= HEADER STYLING ======= */
+        .hdr {
+          position: sticky;
+          top: 0;
+          z-index: 1000;
+          backdrop-filter: blur(16px);
+          -webkit-backdrop-filter: blur(16px);
+          background: rgba(9, 13, 22, 0.85);
+          border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
         }
 
-        /* ======= HEADER ======= */
-        .hdr{
-          position: sticky; top:0; z-index:1000;
-          backdrop-filter: blur(10px);
-          background: linear-gradient(180deg, var(--bg), color-mix(in oklab, var(--bg) 70%, transparent));
-          border-bottom:1px solid var(--line);
-        }
-        .hdr__inner{
-          height:70px; display:flex; align-items:center; gap:16px;
-          max-width:1200px; margin:0 auto; padding:0 20px;
+        .hdr__inner {
+          height: 72px;
+          display: flex;
+          align-items: center;
+          gap: 20px;
+          max-width: 1400px;
+          margin: 0 auto;
+          padding: 0 24px;
         }
 
-        .brand__link{ color: var(--fg); text-decoration:none; }
-        .brand__logo{
-          font-weight:800; letter-spacing:.5px; font-size:18px;
-          background: linear-gradient(90deg, var(--accent), var(--accent-2));
-          -webkit-background-clip:text; background-clip:text; color:transparent;
+        /* Brand Identity */
+        .brand__link {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          text-decoration: none;
         }
 
-        .nav{display:flex; align-items:center; gap:6px; margin-left:12px}
-        .nav__link{
-          --padX:14px; --padY:10px;
-          position:relative; display:inline-flex; align-items:center;
-          padding: var(--padY) var(--padX); border-radius:10px;
-          color:var(--fg); text-decoration:none; font-weight:600; font-size:14px;
-          transition: background .2s ease, color .2s ease;
-        }
-        .nav__link:hover{background: color-mix(in oklab, var(--bg) 65%, transparent);}
-        .nav__link i{
-          position:absolute; left: var(--padX); right: var(--padX); bottom:8px; height:2px;
-          background: linear-gradient(90deg, var(--accent), var(--accent-2));
-          border-radius:2px; transform: scaleX(0); transform-origin: center;
-          transition: transform .22s ease;
-        }
-        .nav__link:hover i{transform: scaleX(1)}
-        .nav__link.is-active{background: color-mix(in oklab, var(--bg) 80%, transparent)}
-        .nav__link.is-active i{transform: scaleX(1)}
-
-        .user{margin-left:auto; display:flex; align-items:center; gap:10px}
-        .signin{
-          padding:8px 12px; border-radius:10px; text-decoration:none; color:var(--fg); font-weight:700;
-          border:1px solid var(--line); background: color-mix(in oklab, var(--bg) 92%, transparent);
+        .brand__badge {
+          position: relative;
+          width: 44px;
+          height: 44px;
+          border-radius: 12px;
+          background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
+          flex-shrink: 0;
         }
 
-        .profile{display:flex; align-items:center}
-        .profile__wrap{position:relative}
-        .profile__btn{
-          display:flex; align-items:center; gap:10px; cursor:pointer;
-          border:1px solid var(--line); background: color-mix(in oklab, var(--bg) 92%, transparent);
-          padding:6px 10px; border-radius:12px; color:var(--fg); font: inherit;
-          transition: box-shadow .2s, border-color .2s, transform .04s;
+        .brand__icon {
+          font-size: 22px;
+          color: #ffffff;
+          position: relative;
+          z-index: 2;
         }
-        .profile__btn:hover{box-shadow: 0 0 0 6px var(--ring)}
-        .profile__btn:active{transform: translateY(1px)}
-        .avatar{
-          width:28px; height:28px; border-radius:50%; display:grid; place-items:center;
-          font-size:12px; font-weight:800; color:white;
-          background: linear-gradient(135deg, var(--accent), var(--accent-2));
-        }
-        .avatar--lg{width:40px; height:40px; font-size:14px}
-        .id{display:flex; flex-direction:column; align-items:flex-start; line-height:1.1}
-        .id__name{font-weight:700; font-size:13px}
-        .id__role{font-size:11px; color:var(--muted); text-transform:capitalize}
-        .chev{
-          width:10px; height:10px; border-right:2px solid var(--muted); border-bottom:2px solid var(--muted);
-          transform: rotate(45deg) translateY(-2px); transition: transform .2s;
-        }
-        .chev.open{transform: rotate(-135deg) translateY(2px)}
 
-        .menu{
-          position:absolute; right:0; top:calc(100% + 8px);
-          width:260px; background: #0b1220; color:#e5e7eb;
-          border-radius:12px; box-shadow: var(--shadow); border:1px solid var(--line); overflow:hidden;
+        .brand__pulse {
+          position: absolute;
+          inset: -2px;
+          border-radius: 14px;
+          background: linear-gradient(135deg, #60a5fa, #2563eb);
+          opacity: 0.35;
+          filter: blur(6px);
         }
-        @media (prefers-color-scheme: light){
-          .menu{ background: var(--white); color:#0f172a}
-        }
-        .menu__head{display:flex; align-items:center; gap:12px; padding:14px 14px; background: color-mix(in oklab, var(--bg) 75%, transparent);}
-        .menu__name{font-weight:700; font-size:14px}
-        .menu__role{font-size:12px; color:var(--muted); text-transform:capitalize}
-        .menu__sep{height:1px; background: var(--line)}
-        .menu__item{
-          width:100%; text-align:left; padding:12px 14px; background:transparent; border:0; cursor:pointer;
-          font-weight:600; color:inherit; transition: background .15s, transform .04s;
-        }
-        .menu__item:hover{background: color-mix(in oklab, var(--bg) 80%, transparent)}
-        .menu__item:active{transform: translateY(1px)}
 
-        /* Hamburger (no icon) */
-        .ham{
-          --bar: 2px;
-          width:38px; height:34px; border:1px solid var(--line); border-radius:10px;
-          background: color-mix(in oklab, var(--bg) 92%, transparent);
-          display:none; align-items:center; justify-content:center; gap:5px;
-          cursor:pointer; margin-left:6px; transition: box-shadow .2s, transform .04s;
+        .brand__text {
+          display: flex;
+          flex-direction: column;
         }
-        .ham:hover{box-shadow: 0 0 0 6px var(--ring)}
-        .ham:active{transform: translateY(1px)}
-        .ham span{
-          position:relative; display:block; width:18px; height:var(--bar); background:var(--fg);
-          border-radius:2px; transition: transform .2s, opacity .2s;
-        }
-        .ham span:nth-child(1){transform-origin: left center}
-        .ham span:nth-child(3){transform-origin: left center}
-        .ham.is-open span:nth-child(1){transform: translateY(6px) rotate(45deg)}
-        .ham.is-open span:nth-child(2){opacity:0}
-        .ham.is-open span:nth-child(3){transform: translateY(-6px) rotate(-45deg)}
 
-        /* Mobile drop-down under header */
-        .mnav{
-          display:none;
-          border-bottom:1px solid var(--line);
-          background: color-mix(in oklab, var(--bg) 96%, transparent);
-          backdrop-filter: blur(8px);
+        .brand__title {
+          font-weight: 800;
+          font-size: 17px;
+          letter-spacing: -0.01em;
+          background: linear-gradient(135deg, #ffffff 0%, #cbd5e1 100%);
+          -webkit-background-clip: text;
+          background-clip: text;
+          color: transparent;
         }
-        .mnav__link{
-          display:block; padding:12px 20px; text-decoration:none; color:var(--fg); font-weight:700;
-        }
-        .mnav__link:hover{background: color-mix(in oklab, var(--bg) 85%, transparent)}
-        .mnav__link.is-active{background: color-mix(in oklab, var(--bg) 80%, transparent); color: var(--accent)}
 
-        /* Responsive */
-        @media (max-width: 900px){
-          .nav{display:none}
-          .ham{display:flex}
-          .id{display:none}
-          .mnav{display:block}
+        .brand__sub {
+          font-size: 11px;
+          font-weight: 700;
+          color: #60a5fa;
+          letter-spacing: 0.04em;
+          text-transform: uppercase;
+        }
+
+        /* Desktop Nav */
+        .nav {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          margin-left: 16px;
+        }
+
+        .nav__link {
+          position: relative;
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          padding: 8px 14px;
+          border-radius: 10px;
+          color: #94a3b8;
+          text-decoration: none;
+          font-weight: 600;
+          font-size: 14px;
+          transition: all 0.2s ease;
+        }
+
+        .nav__icon {
+          font-size: 16px;
+          transition: transform 0.2s ease;
+        }
+
+        .nav__link:hover {
+          color: #f8fafc;
+          background: rgba(255, 255, 255, 0.06);
+        }
+
+        .nav__link:hover .nav__icon {
+          transform: translateY(-1px);
+        }
+
+        .nav__indicator {
+          position: absolute;
+          left: 14px;
+          right: 14px;
+          bottom: -2px;
+          height: 2px;
+          background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+          border-radius: 2px;
+          transform: scaleX(0);
+          transform-origin: center;
+          transition: transform 0.2s ease;
+        }
+
+        .nav__link.is-active {
+          color: #ffffff;
+          background: rgba(37, 99, 235, 0.15);
+          border: 1px solid rgba(59, 130, 246, 0.25);
+        }
+
+        .nav__link.is-active .nav__indicator {
+          transform: scaleX(1);
+        }
+
+        /* User Profile & Menu */
+        .user {
+          margin-left: auto;
+          display: flex;
+          align-items: center;
+          gap: 12px;
+        }
+
+        .signin {
+          padding: 8px 16px;
+          border-radius: 10px;
+          text-decoration: none;
+          color: #ffffff;
+          font-weight: 700;
+          font-size: 14px;
+          background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+          box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+          transition: all 0.2s ease;
+        }
+
+        .signin:hover {
+          transform: translateY(-1px);
+          box-shadow: 0 6px 16px rgba(37, 99, 235, 0.4);
+        }
+
+        .profile__wrap {
+          position: relative;
+        }
+
+        .profile__btn {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          cursor: pointer;
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          background: rgba(15, 23, 42, 0.6);
+          padding: 6px 12px;
+          border-radius: 12px;
+          color: #ffffff;
+          font-family: inherit;
+          transition: all 0.2s ease;
+        }
+
+        .profile__btn:hover {
+          background: rgba(30, 41, 59, 0.8);
+          border-color: rgba(96, 165, 250, 0.3);
+        }
+
+        .avatar {
+          width: 30px;
+          height: 30px;
+          border-radius: 50%;
+          display: grid;
+          place-items: center;
+          font-size: 12px;
+          font-weight: 800;
+          color: #ffffff;
+          background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+          box-shadow: 0 2px 8px rgba(59, 130, 246, 0.4);
+        }
+
+        .avatar--lg {
+          width: 42px;
+          height: 42px;
+          font-size: 15px;
+        }
+
+        .id {
+          display: flex;
+          flex-direction: column;
+          align-items: flex-start;
+          line-height: 1.2;
+        }
+
+        .id__name {
+          font-weight: 700;
+          font-size: 13px;
+          color: #f8fafc;
+        }
+
+        .id__role {
+          font-size: 11px;
+          font-weight: 600;
+          color: #60a5fa;
+          text-transform: capitalize;
+        }
+
+        .chev {
+          font-size: 14px;
+          color: #94a3b8;
+          transition: transform 0.2s ease;
+        }
+
+        .chev.open {
+          transform: rotate(180deg);
+        }
+
+        .menu {
+          position: absolute;
+          right: 0;
+          top: calc(100% + 10px);
+          width: 240px;
+          background: #0f172a;
+          color: #f8fafc;
+          border-radius: 14px;
+          box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.5);
+          border: 1px solid rgba(255, 255, 255, 0.12);
+          overflow: hidden;
+          animation: menuSlide 0.2s ease-out;
+        }
+
+        .menu__head {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          padding: 16px;
+          background: rgba(30, 41, 59, 0.5);
+        }
+
+        .menu__name {
+          font-weight: 700;
+          font-size: 14px;
+          color: #ffffff;
+        }
+
+        .menu__role {
+          font-size: 12px;
+          color: #60a5fa;
+          font-weight: 600;
+          text-transform: capitalize;
+        }
+
+        .menu__sep {
+          height: 1px;
+          background: rgba(255, 255, 255, 0.08);
+        }
+
+        .menu__item {
+          width: 100%;
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          padding: 12px 16px;
+          background: transparent;
+          border: 0;
+          cursor: pointer;
+          font-weight: 600;
+          font-size: 14px;
+          color: #fca5a5;
+          transition: background 0.15s ease;
+        }
+
+        .menu__item:hover {
+          background: rgba(239, 68, 68, 0.15);
+        }
+
+        .menu__ic {
+          font-size: 16px;
+        }
+
+        /* Mobile Hamburger */
+        .ham {
+          width: 40px;
+          height: 38px;
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          border-radius: 10px;
+          background: rgba(15, 23, 42, 0.6);
+          display: none;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          gap: 5px;
+          cursor: pointer;
+          margin-left: 8px;
+        }
+
+        .ham span {
+          display: block;
+          width: 20px;
+          height: 2px;
+          background: #f8fafc;
+          border-radius: 2px;
+          transition: all 0.2s ease;
+        }
+
+        .ham.is-open span:nth-child(1) {
+          transform: translateY(7px) rotate(45deg);
+        }
+
+        .ham.is-open span:nth-child(2) {
+          opacity: 0;
+        }
+
+        .ham.is-open span:nth-child(3) {
+          transform: translateY(-7px) rotate(-45deg);
+        }
+
+        /* Mobile Nav Dropdown */
+        .mnav {
+          display: none;
+          border-top: 1px solid rgba(255, 255, 255, 0.08);
+          background: rgba(9, 13, 22, 0.95);
+          backdrop-filter: blur(12px);
+          padding: 12px 16px;
+        }
+
+        .mnav__link {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          padding: 12px 16px;
+          border-radius: 10px;
+          text-decoration: none;
+          color: #cbd5e1;
+          font-weight: 600;
+          font-size: 14px;
+          margin-bottom: 4px;
+        }
+
+        .mnav__icon {
+          font-size: 18px;
+        }
+
+        .mnav__link:hover,
+        .mnav__link.is-active {
+          background: rgba(37, 99, 235, 0.2);
+          color: #ffffff;
+        }
+
+        @keyframes menuSlide {
+          from { opacity: 0; transform: translateY(-8px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Responsive Breakpoints */
+        @media (max-width: 1100px) {
+          .nav { display: none; }
+          .ham { display: flex; }
+          .mnav { display: block; }
+          .id { display: none; }
+        }
+
+        @media (max-width: 480px) {
+          .brand__sub { display: none; }
+          .brand__title { font-size: 15px; }
         }
       `}</style>
     </header>

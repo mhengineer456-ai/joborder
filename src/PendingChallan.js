@@ -262,42 +262,53 @@ const buildGeneratedMapsFromJobOrder = (rows, lotKeyName) => {
       compRaw === 'true' || compRaw === 'yes' || compRaw === 'y' || compRaw === '1';
     if (comp) completeByLot[lot] = true;
 
-    // aggregate generated qty by shade
-    const j = r[challanItemsJSONKey];
-    if (j && typeof j === 'string') {
-      try {
-        const parsed = JSON.parse(j);
-        const items = Array.isArray(parsed?.items) ? parsed.items : [];
-        for (const it of items) {
-          const shadeKey = normalizeShade(it?.shade || '');
-          const qty = parseNum(it?.qty);
-          if (!shadeKey || qty <= 0) continue;
-          if (!shadeByLot[lot]) shadeByLot[lot] = {};
-          shadeByLot[lot][shadeKey] = (shadeByLot[lot][shadeKey] || 0) + qty;
-        }
-      } catch {}
-    }
-
-    // LAST challan date per shade from history (kept in case you need it)
+    // aggregate generated qty by shade from Challan History JSON first
     const h = r[challanHistoryKey];
+    let hasHistoryItems = false;
     if (h && typeof h === 'string') {
       try {
         const histArr = JSON.parse(h);
         if (Array.isArray(histArr)) {
           for (const entry of histArr) {
+            if (entry?.completeLot) completeByLot[lot] = true;
             const d = parseDateLoose(entry?.date);
-            if (!d) continue;
             const items = Array.isArray(entry?.items) ? entry.items : [];
             for (const it of items) {
               const shadeKey = normalizeShade(it?.shade || '');
+              const qty = parseNum(it?.qty);
               if (!shadeKey) continue;
-              if (!lastDateByLotShade[lot]) lastDateByLotShade[lot] = {};
-              const prev = lastDateByLotShade[lot][shadeKey];
-              if (!prev || d > prev) lastDateByLotShade[lot][shadeKey] = d;
+              if (qty > 0) {
+                if (!shadeByLot[lot]) shadeByLot[lot] = {};
+                shadeByLot[lot][shadeKey] = (shadeByLot[lot][shadeKey] || 0) + qty;
+                hasHistoryItems = true;
+              }
+              if (d) {
+                if (!lastDateByLotShade[lot]) lastDateByLotShade[lot] = {};
+                const prev = lastDateByLotShade[lot][shadeKey];
+                if (!prev || d > prev) lastDateByLotShade[lot][shadeKey] = d;
+              }
             }
           }
         }
       } catch {}
+    }
+
+    if (!hasHistoryItems) {
+      const j = r[challanItemsJSONKey];
+      if (j && typeof j === 'string') {
+        try {
+          const parsed = JSON.parse(j);
+          if (parsed?.completeLot) completeByLot[lot] = true;
+          const items = Array.isArray(parsed?.items) ? parsed.items : [];
+          for (const it of items) {
+            const shadeKey = normalizeShade(it?.shade || '');
+            const qty = parseNum(it?.qty);
+            if (!shadeKey || qty <= 0) continue;
+            if (!shadeByLot[lot]) shadeByLot[lot] = {};
+            shadeByLot[lot][shadeKey] = (shadeByLot[lot][shadeKey] || 0) + qty;
+          }
+        } catch {}
+      }
     }
   }
 

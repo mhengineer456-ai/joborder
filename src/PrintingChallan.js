@@ -755,6 +755,11 @@ const PrintingChallan = () => {
       headerByNorm.get('challan items') ||
       'Challan Items JSON';
 
+    const challanHistoryKey =
+      headerByNorm.get('challan history json') ||
+      headerByNorm.get('challan history') ||
+      'Challan History JSON';
+
     const challanCompleteKey =
       headerByNorm.get('challan complete lot') ||
       headerByNorm.get('challan complete') ||
@@ -781,21 +786,47 @@ const PrintingChallan = () => {
         compRaw === '1';
       if (comp) completeByLot[lot] = true;
 
-      // Per-shade from JSON
-      const j = r[challanItemsJSONKey];
-      if (j && typeof j === 'string') {
+      // Primary: Parse per-shade from Challan History JSON (accumulates ALL challans)
+      const h = r[challanHistoryKey];
+      let hasHistoryItems = false;
+      if (h && typeof h === 'string') {
         try {
-          const parsed = JSON.parse(j);
-          const items = Array.isArray(parsed?.items) ? parsed.items : [];
-          for (const it of items) {
-            const shadeKey = normalizeShade(it?.shade || '');
-            const qty = parseNum(it?.qty);
-            if (!shadeKey || qty <= 0) continue;
-            if (!shadeByLot[lot]) shadeByLot[lot] = {};
-            shadeByLot[lot][shadeKey] = (shadeByLot[lot][shadeKey] || 0) + qty;
+          const histArr = JSON.parse(h);
+          if (Array.isArray(histArr)) {
+            for (const entry of histArr) {
+              if (entry?.completeLot) completeByLot[lot] = true;
+              const items = Array.isArray(entry?.items) ? entry.items : [];
+              for (const it of items) {
+                const shadeKey = normalizeShade(it?.shade || '');
+                const qty = parseNum(it?.qty);
+                if (!shadeKey || qty <= 0) continue;
+                if (!shadeByLot[lot]) shadeByLot[lot] = {};
+                shadeByLot[lot][shadeKey] = (shadeByLot[lot][shadeKey] || 0) + qty;
+                hasHistoryItems = true;
+              }
+            }
           }
-        } catch {
-          // ignore malformed JSON
+        } catch {}
+      }
+
+      // Fallback: Parse Challan Items JSON only if history did not yield per-shade items
+      if (!hasHistoryItems) {
+        const j = r[challanItemsJSONKey];
+        if (j && typeof j === 'string') {
+          try {
+            const parsed = JSON.parse(j);
+            if (parsed?.completeLot) completeByLot[lot] = true;
+            const items = Array.isArray(parsed?.items) ? parsed.items : [];
+            for (const it of items) {
+              const shadeKey = normalizeShade(it?.shade || '');
+              const qty = parseNum(it?.qty);
+              if (!shadeKey || qty <= 0) continue;
+              if (!shadeByLot[lot]) shadeByLot[lot] = {};
+              shadeByLot[lot][shadeKey] = (shadeByLot[lot][shadeKey] || 0) + qty;
+            }
+          } catch {
+            // ignore malformed JSON
+          }
         }
       }
     }
@@ -1326,6 +1357,7 @@ const PrintingChallan = () => {
 
     const lotKeyNormalized = normalizeLot(lot);
     const cuttingDateFromSheet = cuttingDates[lotKeyNormalized] || '-';
+    const pdfDisplayTotal = (pdfDisplayItems || []).reduce((s, it) => s + (Number(it.qty) || 0), 0);
 
     const pairs = [
       { label: "Job Order No", value: jobOrder || '-' },
@@ -1337,7 +1369,7 @@ const PrintingChallan = () => {
       { label: "Section", value: first(['Section']) || '-' },
       { label: "Season", value: first(['Season']) || '-' },
       { label: "Shade", value: pdfDisplayItems && pdfDisplayItems.length ? pdfDisplayItems.map(it => it.shade).join(", ") : first(['Shade']) || '-' },
-      { label: "Quantity", value: fmtNum(qtySheet || '0') },
+      { label: "Quantity", value: fmtNum(pdfDisplayTotal > 0 ? pdfDisplayTotal : (qtySheet || '0')) },
       { label: "Unit", value: unit || '' },
       { label: "Style", value: style || '-' },
       { label: "Priority", value: first(['Priority']) || '-' },
@@ -1536,7 +1568,6 @@ const PrintingChallan = () => {
       challanDate
     ]);
 
-    const pdfDisplayTotal = pdfDisplayItems.reduce((s, it) => s + (Number(it.qty) || 0), 0);
     const totalQtyRow = [
       '',
       '',
@@ -1695,7 +1726,7 @@ const PrintingChallan = () => {
     const completeLotFlag = !!extras.completeLot;
     const newItems = Array.isArray(extras.items)
       ? extras.items
-        .map(it => ({ shade: normalizeShade(it.shade || ''), qty: parseNum(it.qty) }))
+        .map(it => ({ shade: normalizeShade(it.shade || ''), qty: parseNum(it.qty), tableNo: it.tableNo || '' }))
         .filter(it => it.shade && it.qty > 0)
       : [];
 
@@ -1704,22 +1735,9 @@ const PrintingChallan = () => {
     const pdfDisplayItems = newItems;
     const pdfDisplayTotal = newItemsTotal;
 
-    // FOR SAVING: Merge with existing (keep your existing logic for database)
-    const mergedMap = {};
-    for (const it of existing.items) {
-      const k = normalizeShade(it.shade || '');
-      const q = parseNum(it.qty);
-      if (!k || q <= 0) continue;
-      mergedMap[k] = (mergedMap[k] || 0) + q;
-    }
-    for (const it of newItems) mergedMap[it.shade] = (mergedMap[it.shade] || 0) + it.qty;
-    const mergedItems = Object.entries(mergedMap).map(([shade, qty]) => ({ shade, qty }));
-
-    // (C) totals for saving
-    const mergedTotal = completeLotFlag
-      ? existing.totalQty + parseNum(qtySheet)
-      : existing.totalQty + newItemsTotal;
-    const mergedComplete = existing.completeLot || completeLotFlag;
+    const challanTotal = completeLotFlag
+      ? parseNum(qtySheet)
+      : newItemsTotal;
 
     // Always reserve next sequential series Challan No
     let challanNo = '';
@@ -1787,9 +1805,9 @@ const PrintingChallan = () => {
           number: challanNo,
           displayNumber: displayChallanNo,
           date: challanDate,
-          items: mergedItems.map(it => ({ shade: it.shade, qty: it.qty })), // Keep merged for saving
-          totalQty: mergedTotal, // Keep merged for saving
-          completeLot: mergedComplete,
+          items: newItems.map(it => ({ shade: it.shade, qty: it.qty, tableNo: it.tableNo })),
+          totalQty: challanTotal,
+          completeLot: completeLotFlag,
           by: submittedBy,
           pdf: pdfPart || undefined,
         },
@@ -2162,39 +2180,54 @@ const PrintingChallan = () => {
               </button>
 
               {showNotifications && (
-                <div className="cmgr-panel" style={{ width: '360px', right: 0 }}>
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: 'calc(100% + 8px)',
+                    right: 0,
+                    width: '360px',
+                    maxWidth: '90vw',
+                    background: 'var(--panel, #ffffff)',
+                    border: '1px solid var(--border, #e2e8f0)',
+                    borderRadius: '12px',
+                    boxShadow: '0 20px 40px -10px rgba(0, 0, 0, 0.3), 0 8px 16px -4px rgba(0, 0, 0, 0.15)',
+                    zIndex: 9999,
+                    padding: '12px 14px',
+                    color: 'var(--ink, #0f172a)'
+                  }}
+                >
                   <div style={{
                     display: 'flex',
                     justifyContent: 'space-between',
                     alignItems: 'center',
                     marginBottom: '10px',
-                    paddingBottom: '10px',
-                    borderBottom: '1px solid var(--border)'
+                    paddingBottom: '8px',
+                    borderBottom: '1px solid var(--border, #e2e8f0)'
                   }}>
-                    <h4 style={{ margin: 0 }}>Notifications</h4>
-                    <div>
+                    <h4 style={{ margin: 0, fontSize: '15px', fontWeight: 700, color: 'var(--ink, #0f172a)' }}>Notifications</h4>
+                    <div style={{ display: 'flex', gap: '6px' }}>
                       {unreadCount > 0 && (
                         <button
-                          className="btn"
+                          className="btn btn-ghost"
                           onClick={markAllAsRead}
-                          style={{ padding: '4px 8px', marginRight: '5px' }}
+                          style={{ padding: '3px 8px', fontSize: '11px', height: 'auto' }}
                         >
                           Mark all read
                         </button>
                       )}
                       <button
-                        className="btn"
+                        className="btn btn-ghost"
                         onClick={clearNotifications}
-                        style={{ padding: '4px 8px' }}
+                        style={{ padding: '3px 8px', fontSize: '11px', height: 'auto' }}
                       >
                         Clear all
                       </button>
                     </div>
                   </div>
 
-                  <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
+                  <div style={{ maxHeight: '320px', overflowY: 'auto' }}>
                     {notifications.length === 0 ? (
-                      <div style={{ padding: '20px', textAlign: 'center', color: 'var(--muted)' }}>
+                      <div style={{ padding: '24px 12px', textAlign: 'center', color: 'var(--ink-dim, #64748b)', fontSize: '13px' }}>
                         No notifications
                       </div>
                     ) : (
@@ -2203,24 +2236,25 @@ const PrintingChallan = () => {
                           key={notification.id}
                           onClick={() => handleNotificationClick(notification)}
                           style={{
-                            padding: '10px',
-                            borderBottom: '1px solid var(--border)',
+                            padding: '10px 12px',
+                            marginBottom: '6px',
+                            borderRadius: '8px',
                             cursor: 'pointer',
-                            backgroundColor: notification.read ? 'transparent' : 'rgba(91, 156, 255, 0.1)',
-                            transition: 'background-color 0.2s'
-                          }}
-                          onMouseEnter={(e) => {
-                            e.target.style.backgroundColor = 'var(--glass)';
-                          }}
-                          onMouseLeave={(e) => {
-                            e.target.style.backgroundColor = notification.read ? 'transparent' : 'rgba(91, 156, 255, 0.1)';
+                            border: '1px solid ' + (notification.read ? 'transparent' : 'rgba(59, 130, 246, 0.3)'),
+                            backgroundColor: notification.read ? 'rgba(0, 0, 0, 0.02)' : 'rgba(59, 130, 246, 0.08)',
+                            transition: 'all 0.15s ease'
                           }}
                         >
-                          <div style={{ fontWeight: notification.read ? 'normal' : 'bold' }}>
+                          <div style={{
+                            fontWeight: notification.read ? '500' : '700',
+                            fontSize: '13px',
+                            color: 'var(--ink, #0f172a)',
+                            lineHeight: '1.4'
+                          }}>
                             {notification.message}
                           </div>
-                          <div style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '5px' }}>
-                            {new Date(notification.timestamp).toLocaleTimeString()}
+                          <div style={{ fontSize: '11px', color: 'var(--ink-dim, #64748b)', marginTop: '4px' }}>
+                            {new Date(notification.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                           </div>
                         </div>
                       ))
@@ -2289,24 +2323,25 @@ const PrintingChallan = () => {
 
                           {/* Render the additional columns */}
                           <td data-label="Pending Challan Shades">{pendingShades ?? ''}</td>
-                          <td data-label="Cutting Date">{cuttingDates[getLotFromRow(row)] || ''}</td>
+                          <td data-label="Cutting Date">{cuttingDates[getLotFromRow(row)] || '—'}</td>
 
                           {(() => {
                             const pNum = getLotPendingQtyNumber(row);
                             const hasPending = Number(pNum) > 0;
+                            const isComp = status === 'Completed' || embstatus === 'Complete Printing' || isLotMarkedComplete(row);
                             return (
                               <td
                                 data-label="Pending Qty"
                                 className={`col-pending ${hasPending ? 'has' : ''}`}
                                 title={hasPending ? `${pNum.toLocaleString('en-IN')} pending` : ''}
                               >
-                                {pendingQty ?? ''}
+                                {hasPending ? pendingQty : (isComp ? '0' : '—')}
                               </td>
                             );
                           })()}
 
                           <td data-label="Generated Challan Qty">
-                            {generatedQty > 0 ? generatedQty.toLocaleString('en-IN') : ''}
+                            {generatedQty > 0 ? generatedQty.toLocaleString('en-IN') : '—'}
                           </td>
 
                           <td data-label="Material Status">
@@ -2315,7 +2350,7 @@ const PrintingChallan = () => {
                                 <span className="status-dot"></span>
                                 {materialStatus === 'Material Received' ? 'Received' : 'Pending'}
                               </span>
-                            ) : ''}
+                            ) : '—'}
                           </td>
 
                           <td data-label="Printing Status">
@@ -2324,7 +2359,7 @@ const PrintingChallan = () => {
                                 <span className="status-dot"></span>
                                 {embstatus === 'Complete Printing' ? 'Completed' : 'Pending'}
                               </span>
-                            ) : ''}
+                            ) : '—'}
                           </td>
 
                           <td data-label="Challan History">
@@ -2339,15 +2374,20 @@ const PrintingChallan = () => {
                           </td>
 
                           <td data-label="Challan">
-                            <button
-                              className="btn btn-primary"
-                              style={{ height: 32, padding: '0 10px', borderRadius: 8 }}
-                              onClick={() => openChallanModal(row)}
-                              disabled={!getRemainingItemsForLot(row).length && isLotMarkedComplete(row)}
-                              title={!getRemainingItemsForLot(row).length && isLotMarkedComplete(row) ? 'Lot complete' : 'Create Challan'}
-                            >
-                              Create Challan
-                            </button>
+                            {(() => {
+                              const isCompleted = status === 'Completed' || embstatus === 'Complete Printing' || isLotMarkedComplete(row) || (getPositiveQtyItemsForLot(row).length > 0 && getRemainingItemsForLot(row).length === 0);
+                              return (
+                                <button
+                                  className={isCompleted ? "btn btn-ghost" : "btn btn-primary"}
+                                  style={{ height: 32, padding: '0 10px', borderRadius: 8, ...(isCompleted ? { opacity: 0.6, cursor: 'not-allowed' } : {}) }}
+                                  onClick={() => openChallanModal(row)}
+                                  disabled={isCompleted}
+                                  title={isCompleted ? 'Lot completed' : 'Create Challan'}
+                                >
+                                  {isCompleted ? 'Completed' : 'Create Challan'}
+                                </button>
+                              );
+                            })()}
                           </td>
                           <td data-label="Job Order">
                             <button

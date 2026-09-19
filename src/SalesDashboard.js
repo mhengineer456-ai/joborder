@@ -31,6 +31,7 @@ const FiMoreVertical = lazy(() => import('react-icons/fi').then(mod => ({ defaul
 const FiActivity = lazy(() => import('react-icons/fi').then(mod => ({ default: mod.FiActivity })));
 const FiCheckCircle = lazy(() => import('react-icons/fi').then(mod => ({ default: mod.FiCheckCircle })));
 const FiAlertCircle = lazy(() => import('react-icons/fi').then(mod => ({ default: mod.FiAlertCircle })));
+const FiEdit = lazy(() => import('react-icons/fi').then(mod => ({ default: mod.FiEdit })));
 
 // Premium Sapphire Royal Blue & Crisp White Theme System
 const THEME = {
@@ -77,8 +78,8 @@ const PIPELINE_STAGES = [
 ];
 
 const getCardStage = (cardId) => {
-  if ([1, 2, 3, 16, 17, 18].includes(cardId)) return 'sales_planning';
-  if ([4, 6, 7, 8, 11, 12].includes(cardId)) return 'material_cutting';
+  if ([1, 2, 3, 16, 17, 18, 22].includes(cardId)) return 'sales_planning';
+  if ([4, 6, 7, 8, 11, 12, 23].includes(cardId)) return 'material_cutting';
   if ([9, 10, 13, 14, 19, 21].includes(cardId)) return 'embellish_processing';
   return 'logistics_reference';
 };
@@ -124,9 +125,11 @@ const CARDS = [
   { id: 2, icon: 'FiList', title: 'Order Tracking', description: 'Monitor production status in real-time', path: '/sales-data', category: 'Orders', priority: 'medium', stats: '12 pending', trend: '+5%' },
   { id: 3, icon: 'FiGrid', title: 'All Orders', description: 'Complete order management system', path: '/all-order-details', category: 'Orders', priority: 'low', stats: '156 total', trend: '-3%' },
   // { id: 4, icon: 'FiSettings', title: 'Sample Design', description: 'Submit and track design samples', path: '/sample-design-form', category: 'Design', priority: 'high', stats: '8 new', trend: '+25%' },
-  { id: 6, icon: 'FiUsers', title: 'Issued Lot No.', description: 'Fabric issue resolution with tracking', path: '/pending-fabric-issues', category: 'Fabric', priority: 'critical', stats: '3 urgent', trend: '+40%' },
+  // { id: 6, icon: 'FiUsers', title: 'Issued Lot No.', description: 'Fabric issue resolution with tracking', path: '/pending-fabric-issues', category: 'Fabric', priority: 'critical', stats: '3 urgent', trend: '+40%' },
   { id: 7, icon: 'FiClipboard', title: 'Cutting Job Order', description: 'Create cutting job orders with precision', path: '/job-order-form', category: 'Cutting', priority: 'high', stats: '5 today', trend: '+8%' },
   { id: 8, icon: 'FiList', title: 'All Cutting Jobs', description: 'Manage all cutting orders efficiently', path: '/all-job-orders', category: 'Cutting', priority: 'medium', stats: '42 active', trend: '+2%' },
+  { id: 22, icon: 'FiEdit', title: 'Job Order Amendment', description: 'Modify cutting job orders with change tracking', path: '/job-order-amendment', category: 'Cutting', priority: 'high', stats: 'Live Edit', trend: 'Audit' },
+  { id: 23, icon: 'FiEdit', title: 'Update JobOrder', description: 'Update existing cutting job order details', path: '/job-order-amendment', category: 'Cutting', priority: 'high', stats: 'Live Edit', trend: 'Update' },
   { id: 9, icon: 'FiScissors', title: 'Embroidery Challan', description: 'Embroidery order management', path: '/embroidery-challan', category: 'Embroidery', priority: 'medium', stats: '15 pending', trend: '-5%' },
   { id: 10, icon: 'FiPrinter', title: 'Printing Challan', description: 'Printing order tracking', path: '/printing-challan', category: 'Printing', priority: 'high', stats: '8 today', trend: '+18%' },
   { id: 11, icon: 'FiScissors', title: 'Cutting Details', description: 'Cutting budget calculator', path: '/cutting-budget', category: 'Cutting', priority: 'low', stats: '3 entries', trend: '0%' },
@@ -137,7 +140,7 @@ const CARDS = [
   { id: 16, icon: 'FiX', title: 'Cancel Order', description: 'Order cancellation workflow', path: '/cancel-order', category: 'Orders', priority: 'medium', stats: '2 today', trend: '-8%' },
   // { id: 17, icon: 'FiClipboard', title: 'Material Requisition', description: 'Material planning form', path: '/material-requisition-form', category: 'Planning', priority: 'high', stats: '4 new', trend: '+35%' },
   // { id: 18, icon: 'FiTrendingUp', title: 'Requisition Dashboard', description: 'Material analytics dashboard', path: '/material-requisition-dashboard', category: 'Planning', priority: 'medium', stats: 'Live', trend: '+28%' },
-  { id: 19, icon: 'FiUsers', title: 'Parta Details', description: 'Parta information management', path: '/parta-details', category: 'Production', priority: 'medium', stats: '6 entries', trend: '+4%' },
+  // { id: 19, icon: 'FiUsers', title: 'Parta Details', description: 'Parta information management', path: '/parta-details', category: 'Production', priority: 'medium', stats: '6 entries', trend: '+4%' },
   { id: 20, icon: 'FiPackage', title: 'Packing Report', description: 'Update packing reports', path: '/packing-report', category: 'Logistics', priority: 'high', stats: '9 pending', trend: '+16%' },
   { id: 21, icon: 'FiLayers', title: 'Cut-Ready Lots', description: 'Lots ready for embroidery & printing', path: '/cut-ready-lots', category: 'Cutting', priority: 'medium', stats: 'Active', trend: '0%' },
 ];
@@ -161,7 +164,7 @@ const iconComponents = {
   FiFileText, FiList, FiArrowRight, FiTrendingUp, FiUsers, FiSettings, FiClipboard,
   FiPrinter, FiScissors, FiStar, FiX, FiShoppingCart, FiLayers, FiBox, FiPackage,
   FiTag, FiGrid, FiClock, FiMenu, FiHome, FiBarChart2, FiBell, FiSearch, FiMoreVertical,
-  FiActivity, FiCheckCircle, FiAlertCircle,
+  FiActivity, FiCheckCircle, FiAlertCircle, FiEdit,
 };
 
 const CANCEL_ROUTES = {
@@ -681,32 +684,32 @@ const DashboardContainer = styled.div`
     radial-gradient(800px 300px at 0% 0%, rgba(15, 82, 186, 0.04), transparent 60%),
     radial-gradient(1000px 400px at 100% 0%, rgba(15, 82, 186, 0.03), transparent 60%),
     ${THEME.bg};
-  padding: 2.25rem 2rem;
+  padding: 1rem 1.25rem;
   max-width: 1950px;
   margin: 0 auto;
   position: relative;
   
   @media (max-width: 768px) {
-    padding: 1.25rem 1rem;
+    padding: 0.75rem 0.75rem;
   }
 `;
 
 const WorkspaceLayout = styled.div`
   display: flex;
-  gap: 2rem;
-  margin-top: 2rem;
+  gap: 1.25rem;
+  margin-top: 1.25rem;
   
   @media (max-width: 1024px) {
     flex-direction: column;
-    gap: 1.5rem;
+    gap: 1rem;
   }
 `;
 
 const LeftPane = styled.div`
-  width: 260px;
+  width: 240px;
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 1rem;
   flex-shrink: 0;
   
   @media (max-width: 1024px) {
@@ -718,14 +721,14 @@ const RightPane = styled.div`
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 2rem;
+  gap: 1.25rem;
 `;
 
 const CategoryCard = styled.div`
   background: #ffffff;
   border: 1px solid #cbd5e1;
-  border-radius: 20px;
-  padding: 1.25rem;
+  border-radius: 14px;
+  padding: 0.85rem 1rem;
   box-shadow: ${THEME.shadow.md};
   transition: all 0.2s ease;
 
@@ -738,8 +741,8 @@ const CategoryCard = styled.div`
 const FavoritesCard = styled.div`
   background: #ffffff;
   border: 1px solid #cbd5e1;
-  border-radius: 20px;
-  padding: 1.25rem;
+  border-radius: 14px;
+  padding: 0.85rem 1rem;
   box-shadow: ${THEME.shadow.md};
   transition: all 0.2s ease;
 
@@ -754,27 +757,27 @@ const CategoryTitle = styled.h4`
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: #2563eb;
-  margin-bottom: 0.85rem;
+  margin-bottom: 0.5rem;
   font-weight: 800;
-  padding-left: 0.4rem;
+  padding-left: 0.3rem;
 `;
 
 const NavItem = styled.button`
   display: flex;
   align-items: center;
-  gap: 0.8rem;
-  padding: 0.7rem 0.9rem;
+  gap: 0.65rem;
+  padding: 0.5rem 0.75rem;
   width: 100%;
   background: ${props => props.$active ? 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)' : 'transparent'};
   border: 1px solid ${props => props.$active ? 'transparent' : 'transparent'};
-  border-radius: 12px;
+  border-radius: 10px;
   cursor: pointer;
   color: ${props => props.$active ? '#ffffff' : THEME.text.secondary};
   font-weight: 700;
-  font-size: 0.85rem;
+  font-size: 0.82rem;
   text-align: left;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  margin-bottom: 0.25rem;
+  margin-bottom: 0.2rem;
   box-shadow: ${props => props.$active ? '0 4px 12px rgba(37, 99, 235, 0.3)' : 'none'};
   
   &:hover {
@@ -799,21 +802,21 @@ const NavLabel = styled.span`
 const FavList = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
+  gap: 0.3rem;
 `;
 
 const FavItem = styled.button`
   display: flex;
   align-items: center;
-  gap: 0.6rem;
+  gap: 0.5rem;
   background: #ffffff;
   border: 1px solid #cbd5e1;
   cursor: pointer;
-  padding: 0.6rem 0.75rem;
-  border-radius: 10px;
+  padding: 0.45rem 0.65rem;
+  border-radius: 8px;
   width: 100%;
   text-align: left;
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   font-weight: 700;
   color: #0f172a;
   transition: all 0.2s ease;
@@ -830,12 +833,12 @@ const TopBar = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1.5rem 2rem;
+  padding: 0.85rem 1.25rem;
   background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 50%, #2563eb 100%);
-  border-radius: 24px;
-  box-shadow: 0 14px 28px rgba(37, 99, 235, 0.18);
+  border-radius: 16px;
+  box-shadow: 0 10px 22px rgba(37, 99, 235, 0.15);
   flex-wrap: wrap;
-  gap: 1.25rem;
+  gap: 1rem;
   position: relative;
   overflow: hidden;
 
@@ -1058,11 +1061,11 @@ const StatsGrid = styled.div`
 
 const StatCard = styled.div`
   background: #ffffff;
-  padding: 1.25rem 1.5rem;
-  border-radius: 20px;
+  padding: 0.75rem 1rem;
+  border-radius: 14px;
   display: flex;
   align-items: center;
-  gap: 1.25rem;
+  gap: 0.85rem;
   border: 1px solid #cbd5e1;
   border-top: 3px solid #2563eb;
   box-shadow: ${THEME.shadow.md};
@@ -1080,9 +1083,9 @@ const StatCard = styled.div`
 `;
 
 const StatIcon = styled.div`
-  width: 50px;
-  height: 50px;
-  border-radius: 14px;
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1099,17 +1102,17 @@ const StatInfo = styled.div`
 `;
 
 const StatValue = styled.div`
-  font-size: 1.7rem;
+  font-size: 1.4rem;
   font-weight: 800;
   color: #0f172a;
   line-height: 1.2;
 `;
 
 const StatLabel = styled.div`
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   font-weight: 700;
   color: #1e40af;
-  margin-top: 0.15rem;
+  margin-top: 0.1rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
 `;
@@ -1117,7 +1120,7 @@ const StatLabel = styled.div`
 const ModulesSection = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 1.25rem;
+  gap: 1rem;
 `;
 
 const SectionHeader = styled.div`
@@ -1127,7 +1130,7 @@ const SectionHeader = styled.div`
 `;
 
 const SectionTitle = styled.h3`
-  font-size: 1.1rem;
+  font-size: 1.05rem;
   font-weight: 800;
   color: #0f172a;
   display: flex;
@@ -1168,7 +1171,7 @@ const ResetFiltersBtn = styled.button`
 const BoardLayout = styled.div`
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 1.25rem;
+  gap: 0.85rem;
   align-items: start;
   
   @media (max-width: 1440px) {
@@ -1182,13 +1185,13 @@ const BoardLayout = styled.div`
 const BoardColumn = styled.div`
   background: #ffffff;
   border: 1px solid #cbd5e1;
-  border-radius: 20px;
-  padding: 1.25rem 1rem;
+  border-radius: 14px;
+  padding: 0.75rem 0.65rem;
   box-shadow: ${THEME.shadow.md};
   display: flex;
   flex-direction: column;
-  gap: 1rem;
-  min-height: 480px;
+  gap: 0.65rem;
+  min-height: 420px;
   min-width: 0;
   transition: all 0.2s ease;
   position: relative;
@@ -1215,34 +1218,34 @@ const ColumnHeader = styled.div`
   align-items: center;
   justify-content: space-between;
   border-bottom: 2px solid ${props => props.$color || '#2563eb'};
-  padding-bottom: 0.75rem;
-  margin-bottom: 0.25rem;
-  padding-left: 0.25rem;
-  padding-right: 0.25rem;
+  padding-bottom: 0.4rem;
+  margin-bottom: 0.15rem;
+  padding-left: 0.2rem;
+  padding-right: 0.2rem;
 `;
 
 const ColumnTitleGroup = styled.div`
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.4rem;
   color: #0f172a;
   
   span {
-    font-size: 0.7rem;
+    font-size: 0.68rem;
     color: #1d4ed8;
     background: #eff6ff;
     border: 1px solid #bfdbfe;
-    padding: 0.15rem 0.55rem;
-    border-radius: 10px;
+    padding: 0.1rem 0.45rem;
+    border-radius: 8px;
     font-weight: 800;
   }
 `;
 
 const ColumnTitle = styled.h4`
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.04em;
   color: #0f172a;
 `;
 
@@ -1255,7 +1258,7 @@ const ColumnIcon = styled.div`
 const BoardColumnBody = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 0.55rem;
   flex: 1;
 `;
 
@@ -1263,14 +1266,14 @@ const RowCard = styled(motion.div)`
   background: #ffffff;
   border: 1px solid #cbd5e1;
   border-left: 4px solid ${props => props.$priorityColor || '#2563eb'};
-  border-radius: 14px;
-  padding: 1rem;
+  border-radius: 10px;
+  padding: 0.65rem 0.75rem;
   cursor: pointer;
   position: relative;
   overflow: hidden;
   display: flex;
   align-items: center;
-  gap: 0.85rem;
+  gap: 0.65rem;
   box-shadow: 0 2px 4px rgba(15, 23, 42, 0.03);
   min-width: 0;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
@@ -1279,15 +1282,15 @@ const RowCard = styled(motion.div)`
     border-color: #3b82f6;
     border-left-color: ${props => props.$priorityColor || '#1d4ed8'};
     background: #f0f9ff;
-    transform: translateY(-3px);
-    box-shadow: 0 8px 16px -3px rgba(37, 99, 235, 0.12), 0 4px 6px -4px rgba(15, 23, 42, 0.04);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px -3px rgba(37, 99, 235, 0.12), 0 3px 4px -4px rgba(15, 23, 42, 0.04);
   }
 `;
 
 const RowIcon = styled.div`
-  width: 40px;
-  height: 40px;
-  border-radius: 10px;
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
   background: ${props => props.$bgColor || '#eff6ff'};
   color: ${props => props.$color || '#2563eb'};
   border: 1px solid rgba(191, 219, 254, 0.8);
@@ -1311,7 +1314,7 @@ const RowTitleGroup = styled.div`
 `;
 
 const RowTitle = styled.h5`
-  font-size: 0.85rem;
+  font-size: 0.82rem;
   font-weight: 700;
   color: ${THEME.text.primary};
   white-space: nowrap;
@@ -1320,18 +1323,18 @@ const RowTitle = styled.h5`
 `;
 
 const RowDesc = styled.p`
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   color: ${THEME.text.secondary};
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  margin-top: 0.1rem;
+  margin-top: 0.05rem;
 `;
 
 const RowRight = styled.div`
   display: flex;
   align-items: center;
-  gap: 0.4rem;
+  gap: 0.35rem;
   flex-shrink: 0;
 `;
 
@@ -1339,7 +1342,7 @@ const RowFavBtn = styled.button`
   background: none;
   border: none;
   cursor: pointer;
-  padding: 0.25rem;
+  padding: 0.2rem;
   border-radius: 6px;
   display: flex;
   align-items: center;
@@ -1353,12 +1356,12 @@ const RowFavBtn = styled.button`
 
 const ColumnEmptyState = styled.div`
   text-align: center;
-  padding: 2rem 1rem;
+  padding: 1.5rem 0.75rem;
   color: ${THEME.text.muted};
   font-size: 0.75rem;
   font-weight: 600;
   border: 1px dashed ${THEME.border};
-  border-radius: 14px;
+  border-radius: 10px;
   background: #fcfdfe;
 `;
 
@@ -1367,7 +1370,7 @@ const ColumnEmptyState = styled.div`
 const TableContainer = styled.div`
   background: #ffffff;
   border: 1px solid #cbd5e1;
-  border-radius: 20px;
+  border-radius: 14px;
   box-shadow: ${THEME.shadow.md};
   overflow: hidden;
   
@@ -1392,8 +1395,8 @@ const TableHead = styled.thead`
 `;
 
 const Th = styled.th`
-  padding: 1.1rem 1.25rem;
-  font-size: 0.75rem;
+  padding: 0.65rem 0.9rem;
+  font-size: 0.72rem;
   font-weight: 800;
   text-transform: uppercase;
   color: #ffffff;
@@ -1417,7 +1420,7 @@ const Tr = styled.tr`
 `;
 
 const Td = styled.td`
-  padding: 1rem 1.25rem;
+  padding: 0.55rem 0.9rem;
   vertical-align: middle;
 `;
 

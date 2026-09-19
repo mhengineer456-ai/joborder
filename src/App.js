@@ -44,6 +44,7 @@ import Parta from "./Parta";
 
 // 👇 IMPORT YOUR NEW COMPONENT HERE
 import CutReadyLots from "./CutReadyLots";
+import JobOrderAmendment from "./JobOrderAmendment";
 
 import UpdatePackingReport from "./UpdatePackingReport";
 
@@ -250,6 +251,15 @@ function AppContent() {
           element={
             <RequireRole roles={["admin", "production", "sales"]}>
               <JobOrders />
+            </RequireRole>
+          }
+        />
+
+        <Route
+          path="/job-order-amendment"
+          element={
+            <RequireRole roles={["admin", "production", "sales"]}>
+              <JobOrderAmendment />
             </RequireRole>
           }
         />
